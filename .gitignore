@@ -260,3 +260,5 @@ paket-files/
 __pycache__/
 *.pyc
 .DS_Store
+**/scenes/*.js**
+source/MathForGameDevelopers/MathForGameDevelopers/app.js**
