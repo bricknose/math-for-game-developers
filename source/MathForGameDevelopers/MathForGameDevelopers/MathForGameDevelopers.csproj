@@ -40,7 +40,7 @@
     <TypeScriptRemoveComments>False</TypeScriptRemoveComments>
     <TypeScriptOutFile>
     </TypeScriptOutFile>
-    <TypeScriptOutDir />
+    <TypeScriptOutDir>.\dist</TypeScriptOutDir>
     <TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
     <TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
     <TypeScriptSourceMap>True</TypeScriptSourceMap>
@@ -81,8 +81,8 @@
     <Content Include="app.css" />
     <Content Include="index.html" />
     <Content Include="Web.config" />
-    <Content Include="phaser.js" />
-    <Content Include="phaser.min.js" />
+    <Content Include="libs\phaser.js" />
+    <Content Include="libs\phaser.min.js" />
     <Content Include="assets\background.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
