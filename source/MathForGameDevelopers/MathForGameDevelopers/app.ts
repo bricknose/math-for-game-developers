@@ -1,26 +1,32 @@
-﻿/// <reference lib=”phaser.d.ts”/>
+﻿import "phaser";
+import { MainGameScene } from "./scenes/main-scene";
 
-class SimpleGame {
+const config: Phaser.Types.Core.GameConfig = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 200 }
+        }
+    },
+    title: "Math For Game Developers",
+    parent: "game",
+    scene: [new MainGameScene()],
+    input: {
+        keyboard: true
+    },
+    backgroundColor: "#3A99D9",
+    render: { pixelArt: false, antialias: false }
+};
 
-    constructor() {
-        this.game = new Phaser.Game(800, 600, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
+export class Game extends Phaser.Game {
+    constructor(config: Phaser.Types.Core.GameConfig) {
+        super(config);
     }
-
-    game: Phaser.Game;
-
-    preload() {
-        this.game.load.image('logo', 'phaser2.png');
-    }
-
-    create() {
-        var logo = this.game.add.sprite(this.game.world.centerX, this.game.world.centerY, 'logo');
-        logo.anchor.setTo(0.5, 0.5);
-    }
-
 }
 
-window.onload = () => {
-
-    var game = new SimpleGame();
-
-};
+window.addEventListener("load", () => {
+    var game = new Game(config);
+});
