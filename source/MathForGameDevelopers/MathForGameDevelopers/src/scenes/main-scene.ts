@@ -21,6 +21,7 @@
         // create background
         this.background = this.add.image(0, 0, "background");
         this.background.setOrigin(0, 0);
+        this.background.setDisplaySize(this.sys.canvas.width, this.sys.canvas.height);
     }
 
     update(): void {

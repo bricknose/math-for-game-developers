@@ -1,5 +1,4 @@
-﻿import "phaser";
-import { MainGameScene } from "./scenes/main-scene";
+﻿import { MainGameScene } from "./scenes/main-scene";
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
@@ -12,7 +11,7 @@ const config: Phaser.Types.Core.GameConfig = {
         }
     },
     title: "Math For Game Developers",
-    parent: "game",
+    parent: "#content",
     scene: [new MainGameScene()],
     input: {
         keyboard: true

@@ -1,31 +1,36 @@
-﻿module.exports = {
+﻿var path = require('path');
+
+module.exports = {
     entry: {
-        'app': "./src/app.ts",
-        'app.min': "./src/app.ts"
+        'app': "./src/game.ts",
+        //'app.min': "./src/game.ts"
+    },
+    optimization: {
+        minimize: false,
+        splitChunks: {
+            chunks: "all",
+            minSize: 0,
+            name: "shared"
+        }
+    },
+    module: {
+        rules: [
+            {
+                test: /\.tsx?$/,
+                use: "ts-loader",
+                exclude: /node_modules/
+            }
+        ]
     },
     output: {
-        path: path.resolve(__dirname, "_bundles"),
+        path: path.resolve(__dirname, "dist"),
             filename: "[name].js",
             libraryTarget: "umd",
-            library: "MyLib",
+            library: "MathForGameDevelopers",
             umdNamedDefine: true
     },
     resolve: {
         extensions: [".ts", ".tsx", ".js"]
     },
-    devtool: "source-map",
-        plugins: [
-            new webpack.optimize.UglifyJsPlugin({
-                minimize: true,
-                sourceMap: true,
-                include: /\.min\.js$/
-            })
-        ],
-        module: {
-        loaders: [{
-            test: /\.tsx?$/,
-            loader: "ts-loader",
-            exclude: /node_modules/
-        }]
-    }
+    devtool: "source-map"
 };
