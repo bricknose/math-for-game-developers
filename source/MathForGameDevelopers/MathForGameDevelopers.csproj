@@ -97,6 +97,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </TypeScriptCompile>
     <TypeScriptCompile Include="libs\phaser.d.ts" />
+    <TypeScriptCompile Include="src\libraries\point.ts" />
+    <TypeScriptCompile Include="src\libraries\vector.ts" />
+    <TypeScriptCompile Include="src\objects\actor.ts" />
     <TypeScriptCompile Include="src\scenes\main-scene.ts" />
   </ItemGroup>
   <ItemGroup>
