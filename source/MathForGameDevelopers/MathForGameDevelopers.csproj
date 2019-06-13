@@ -71,6 +71,7 @@
     <TypeScriptSourceRoot />
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="assets\pacman.png" />
     <Content Include="package-lock.json" />
     <Content Include="package.json" />
     <Content Include="tsconfig.json" />
@@ -97,6 +98,11 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </TypeScriptCompile>
     <TypeScriptCompile Include="libs\phaser.d.ts" />
+    <TypeScriptCompile Include="src\libraries\math\point.ts" />
+    <TypeScriptCompile Include="src\libraries\math\vector.ts" />
+    <TypeScriptCompile Include="src\objects\actor.ts" />
+    <TypeScriptCompile Include="src\libraries\controls\controls.ts" />
+    <TypeScriptCompile Include="src\objects\pacman.ts" />
     <TypeScriptCompile Include="src\scenes\main-scene.ts" />
   </ItemGroup>
   <ItemGroup>
