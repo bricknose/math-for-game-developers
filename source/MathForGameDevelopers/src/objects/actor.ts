@@ -1,6 +1,6 @@
 ﻿import Scene = Phaser.Scene;
-import { Vector } from "../libraries/vector";
-import { Point } from "../libraries/point";
+import { Vector } from "../libraries/math/vector";
+import { Point } from "../libraries/math/point";
 
 export class Actor extends Phaser.GameObjects.Sprite {
     private position: Point;
@@ -13,7 +13,7 @@ export class Actor extends Phaser.GameObjects.Sprite {
             texture,
             frame);
 
-        this.position = position;
+        this.updatePosition(position);
     }
 
     move(v: Vector): void {

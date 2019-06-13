@@ -1,9 +1,23 @@
 ﻿import { Actor } from "./actor";
-import { Point } from "../libraries/point";
+import { Point } from "../libraries/math/point";
+import { Controls } from "../libraries/controls/controls";
 import Scene = Phaser.Scene;
 
 export class Pacman extends Actor {
-    constructor(scene: Scene, startPoint: Point) {
-        super(scene, startPoint, "pacman", 0);
+    private controls: Controls;
+
+    constructor(scene: Scene, startPoint: Point, controls: Controls) {
+        super(scene, startPoint, "pacman-sheet", 0);
+
+        this.controls = controls;
+    }
+
+    preUpdate(time: number, delta: number): void {
+        let moveVector = this.controls.getMoveVector();
+        this.move(moveVector);
+
+        if (moveVector.getX()) {
+            this.flipX = moveVector.getX() < 0;
+        }
     }
 }
