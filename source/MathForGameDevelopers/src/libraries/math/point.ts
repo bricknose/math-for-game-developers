@@ -23,4 +23,11 @@ export class Point {
             this.y + v.getY()
         );
     }
+
+    subtract(p: Point): Vector {
+        return new Vector(
+            this.x - p.getX(),
+            this.y - p.getY()
+        );
+    }
 }
