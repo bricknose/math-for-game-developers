@@ -1,6 +1,6 @@
-﻿import { Actor } from "./actor";
-import { Point } from "../libraries/math/point";
-import { Controls } from "../libraries/controls/controls";
+﻿import { Actor } from "./";
+import { Point } from "../libraries/math";
+import { Controls } from "../libraries/controls";
 import Scene = Phaser.Scene;
 
 export class Pacman extends Actor {

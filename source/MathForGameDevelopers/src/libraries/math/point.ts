@@ -1,4 +1,4 @@
-﻿import { Vector } from "./vector";
+﻿import { Vector } from "./";
 
 export class Point {
     private x: number;
@@ -21,6 +21,13 @@ export class Point {
         return new Point(
             this.x + v.getX(),
             this.y + v.getY()
+        );
+    }
+
+    subtract(p: Point): Vector {
+        return new Vector(
+            this.x - p.getX(),
+            this.y - p.getY()
         );
     }
 }

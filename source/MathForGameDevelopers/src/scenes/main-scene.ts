@@ -1,9 +1,8 @@
-﻿import { Pacman } from "../objects/pacman";
-import { Controls } from "../libraries/controls/controls";
-import { Point } from "../libraries/math/point";
+﻿import { Pacman, Ghost } from "../objects";
+import { Controls } from "../libraries/controls";
+import { Point } from "../libraries/math";
 
 export class MainGameScene extends Phaser.Scene {
-    private background: Phaser.GameObjects.Image;
     private player: Pacman;
 
     constructor() {
@@ -13,14 +12,15 @@ export class MainGameScene extends Phaser.Scene {
     }
 
     preload(): void {
-        this.load.image(
-            "background",
-            "assets/background.png"
-        );
         this.load.spritesheet("pacman-sheet", "assets/pacman.png",
             {
                 frameWidth: 13,
                 frameHeight: 13
+            });
+        this.load.spritesheet("ghost-sheet", "assets/inky.png",
+            {
+                frameWidth: 14,
+                frameHeight: 14
             });
     }
 
@@ -28,18 +28,13 @@ export class MainGameScene extends Phaser.Scene {
     }
 
     create(): void {
-        // create background
-        //this.background = this.add.image(0, 0, "background");
-        //this.background.setOrigin(0, 0);
-        //this.background.setDisplaySize(this.sys.canvas.width, this.sys.canvas.height);
-
-        //this.physics.add.sprite(50, 50, "pacman-sheet", 0);
-
         let controls = new Controls(this.input.keyboard);
 
         this.player = new Pacman(this, new Point(20, 20), controls);
-        //this.physics.add.existing(this.player);
         this.add.existing(this.player);
+
+        let ghost = new Ghost(this, new Point(400, 400), this.player);
+        this.add.existing(ghost);
     }
 
     update(): void {

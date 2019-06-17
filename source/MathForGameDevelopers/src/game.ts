@@ -1,4 +1,4 @@
-﻿import { MainGameScene } from "./scenes/main-scene";
+﻿import { MainGameScene } from "./scenes";
 
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
