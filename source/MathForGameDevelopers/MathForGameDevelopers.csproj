@@ -98,11 +98,15 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </TypeScriptCompile>
     <TypeScriptCompile Include="libs\phaser.d.ts" />
+    <TypeScriptCompile Include="src\libraries\controls\index.ts" />
+    <TypeScriptCompile Include="src\libraries\math\index.ts" />
     <TypeScriptCompile Include="src\libraries\math\point.ts" />
     <TypeScriptCompile Include="src\libraries\math\vector.ts" />
     <TypeScriptCompile Include="src\objects\actor.ts" />
     <TypeScriptCompile Include="src\libraries\controls\controls.ts" />
+    <TypeScriptCompile Include="src\objects\index.ts" />
     <TypeScriptCompile Include="src\objects\pacman.ts" />
+    <TypeScriptCompile Include="src\scenes\index.ts" />
     <TypeScriptCompile Include="src\scenes\main-scene.ts" />
   </ItemGroup>
   <ItemGroup>

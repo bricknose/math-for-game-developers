@@ -1,4 +1,4 @@
-﻿import { Vector } from "./vector";
+﻿import { Vector } from "./";
 
 export class Point {
     private x: number;

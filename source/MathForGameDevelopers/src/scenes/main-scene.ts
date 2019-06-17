@@ -1,6 +1,9 @@
 ﻿import { Pacman } from "../objects/pacman";
 import { Controls } from "../libraries/controls/controls";
 import { Point } from "../libraries/math/point";
+﻿import { Pacman } from "../objects";
+import { Controls } from "../libraries/controls";
+import { Point } from "../libraries/math";
 
 export class MainGameScene extends Phaser.Scene {
     private background: Phaser.GameObjects.Image;
