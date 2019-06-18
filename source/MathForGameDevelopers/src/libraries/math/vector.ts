@@ -15,7 +15,11 @@
         return this.y;
     }
 
+    findSquaredLength(): number {
+        return this.getX() * this.getX() + this.getY() * this.getY();
+    }
+
     findLength(): number {
-        return Math.sqrt(this.getX() * this.getX() + this.getY() * this.getY());
+        return Math.sqrt(this.findSquaredLength());
     }
 }
