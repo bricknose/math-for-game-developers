@@ -13,6 +13,7 @@ export class Ghost extends Actor {
 
     preUpdate(time: number, delta: number): void {
         let targetVector = this.target.getPosition().subtract(this.getPosition());
+        console.log(`Distance to target: ${targetVector.findLength()}`);
 
         const maxMoveAmount = .5;
 
