@@ -25,7 +25,6 @@ export class Actor extends Phaser.GameObjects.Sprite {
 
     private updatePosition(newPosition: Point): void {
         this.position = newPosition;
-        this.x = newPosition.getX();
-        this.y = newPosition.getY();
+        this.setPosition(newPosition.getX(), newPosition.getY());
     }
 }

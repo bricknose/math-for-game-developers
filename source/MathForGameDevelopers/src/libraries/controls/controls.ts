@@ -1,10 +1,10 @@
 ﻿import { Vector } from "../../libraries/math/vector";
 
 export class Controls {
-    private upKey: Phaser.Input.Keyboard.Key;
-    private downKey: Phaser.Input.Keyboard.Key;
-    private leftKey: Phaser.Input.Keyboard.Key;
-    private rightKey: Phaser.Input.Keyboard.Key;
+    private readonly upKey: Phaser.Input.Keyboard.Key;
+    private readonly downKey: Phaser.Input.Keyboard.Key;
+    private readonly leftKey: Phaser.Input.Keyboard.Key;
+    private readonly rightKey: Phaser.Input.Keyboard.Key;
 
     constructor(keyboardInput: Phaser.Input.Keyboard.KeyboardPlugin) {
         this.upKey = keyboardInput.addKey(Phaser.Input.Keyboard.KeyCodes.W);

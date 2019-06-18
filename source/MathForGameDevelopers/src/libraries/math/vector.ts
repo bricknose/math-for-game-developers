@@ -1,6 +1,6 @@
 ﻿export class Vector {
-    private x: number;
-    private y: number;
+    private readonly x: number;
+    private readonly y: number;
 
     constructor(x: number, y: number) {
         this.x = x;
@@ -13,5 +13,9 @@
 
     getY(): number {
         return this.y;
+    }
+
+    findLength(): number {
+        return Math.sqrt(this.getX() * this.getX() + this.getY() * this.getY());
     }
 }
