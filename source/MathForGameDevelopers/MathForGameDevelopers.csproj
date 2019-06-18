@@ -105,6 +105,7 @@
     <TypeScriptCompile Include="src\objects\actor.ts" />
     <TypeScriptCompile Include="src\libraries\controls\controls.ts" />
     <TypeScriptCompile Include="src\objects\ghost.ts" />
+    <TypeScriptCompile Include="src\objects\ghostType.ts" />
     <TypeScriptCompile Include="src\objects\index.ts" />
     <TypeScriptCompile Include="src\objects\pacman.ts" />
     <TypeScriptCompile Include="src\scenes\index.ts" />

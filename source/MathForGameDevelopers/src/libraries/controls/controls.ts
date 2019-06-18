@@ -1,4 +1,4 @@
-﻿import { Vector } from "../../libraries/math/vector";
+﻿import { Vector } from "../../libraries/math";
 
 export class Controls {
     private readonly upKey: Phaser.Input.Keyboard.Key;
