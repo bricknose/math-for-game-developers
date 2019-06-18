@@ -14,4 +14,8 @@
     getY(): number {
         return this.y;
     }
+
+    findLength(): number {
+        return Math.sqrt(this.getX() * this.getX() + this.getY() * this.getY());
+    }
 }
