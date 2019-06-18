@@ -1,18 +1,31 @@
-﻿import { Actor } from "./";
+﻿import { Actor, GhostType } from "./";
 import { Vector, Point } from "../libraries/math";
 import Scene = Phaser.Scene;
 
 export class Ghost extends Actor {
-    private readonly target: Actor;
 
-    constructor(scene: Scene, startPoint: Point, target: Actor) {
-        super(scene, startPoint, "ghost-sheet", 0);
+    constructor(scene: Scene, startPoint: Point, ghostType: GhostType) {
+        const getGhostType = () => {
+            switch (ghostType) {
+                case GhostType.Inky:
+                    return "inky-sheet";
+                case GhostType.Blinky:
+                    return "blinky-sheet";
+                case GhostType.Pinky:
+                    return "pinky-sheet";
+                case GhostType.Clyde:
+                    return "clyde-sheet";
+            }
+        };
 
-        this.target = target;
+        super(scene, startPoint, getGhostType(), 0);
     }
 
     preUpdate(time: number, delta: number): void {
-        const targetVector = this.target.getPosition().subtract(this.getPosition());
+    }
+
+    chaseTarget(target: Actor) {
+        const targetVector = target.getPosition().subtract(this.getPosition());
 
         console.log(`Distance to target: ${targetVector.findLength()}`);
 
