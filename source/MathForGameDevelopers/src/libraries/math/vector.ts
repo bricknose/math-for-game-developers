@@ -1,6 +1,6 @@
 ﻿export class Vector {
-    private x: number;
-    private y: number;
+    private readonly x: number;
+    private readonly y: number;
 
     constructor(x: number, y: number) {
         this.x = x;

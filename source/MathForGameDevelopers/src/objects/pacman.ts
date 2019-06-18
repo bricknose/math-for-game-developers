@@ -4,7 +4,7 @@ import { Controls } from "../libraries/controls";
 import Scene = Phaser.Scene;
 
 export class Pacman extends Actor {
-    private controls: Controls;
+    private readonly controls: Controls;
 
     constructor(scene: Scene, startPoint: Point, controls: Controls) {
         super(scene, startPoint, "pacman-sheet", 0);
@@ -13,7 +13,7 @@ export class Pacman extends Actor {
     }
 
     preUpdate(time: number, delta: number): void {
-        let moveVector = this.controls.getMoveVector();
+        const moveVector = this.controls.getMoveVector();
         this.move(moveVector);
 
         if (moveVector.getX()) {

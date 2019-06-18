@@ -3,7 +3,7 @@ import { Vector, Point } from "../libraries/math";
 import Scene = Phaser.Scene;
 
 export class Ghost extends Actor {
-    private target: Actor;
+    private readonly target: Actor;
 
     constructor(scene: Scene, startPoint: Point, target: Actor) {
         super(scene, startPoint, "ghost-sheet", 0);
@@ -12,12 +12,13 @@ export class Ghost extends Actor {
     }
 
     preUpdate(time: number, delta: number): void {
-        let targetVector = this.target.getPosition().subtract(this.getPosition());
+        const targetVector = this.target.getPosition().subtract(this.getPosition());
+
         console.log(`Distance to target: ${targetVector.findLength()}`);
 
         const maxMoveAmount = .5;
 
-        let moveVector = new Vector(
+        const moveVector = new Vector(
             Math.max(Math.min(targetVector.getX(), maxMoveAmount), -maxMoveAmount),
             Math.max(Math.min(targetVector.getY(), maxMoveAmount), -maxMoveAmount)
         );

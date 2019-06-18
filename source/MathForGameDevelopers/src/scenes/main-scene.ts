@@ -28,12 +28,12 @@ export class MainGameScene extends Phaser.Scene {
     }
 
     create(): void {
-        let controls = new Controls(this.input.keyboard);
+        const controls = new Controls(this.input.keyboard);
 
         this.player = new Pacman(this, new Point(20, 20), controls);
         this.add.existing(this.player);
 
-        let ghost = new Ghost(this, new Point(400, 400), this.player);
+        const ghost = new Ghost(this, new Point(400, 400), this.player);
         this.add.existing(ghost);
     }
 
