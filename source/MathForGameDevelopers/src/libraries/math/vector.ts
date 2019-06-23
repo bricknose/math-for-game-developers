@@ -22,4 +22,8 @@
     findLength(): number {
         return Math.sqrt(this.findSquaredLength());
     }
+
+    scale(multiplier: number): Vector {
+        return new Vector(this.x * multiplier, this.y * multiplier);
+    }
 }
