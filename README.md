@@ -9,3 +9,11 @@ Navigate to `/source/MathForGameDevelopers/` and run:
 ```console 
 npm run watch
 ```
+
+Then in another console at the same path, run:
+
+```console 
+npm run deploy
+```
+
+The game will then be playable at http://127.0.0.1:8085/
