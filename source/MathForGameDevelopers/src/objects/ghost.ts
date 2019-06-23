@@ -4,6 +4,10 @@ import Scene = Phaser.Scene;
 
 export class Ghost extends Actor {
 
+    private static readonly MoveSpeed = 100;
+
+    private currentTarget : Actor;
+
     constructor(scene: Scene, startPoint: Point, ghostType: GhostType) {
         const getGhostType = () => {
             switch (ghostType) {
@@ -22,12 +26,23 @@ export class Ghost extends Actor {
     }
 
     preUpdate(time: number, delta: number): void {
+        if (this.currentTarget) {
+            this.chaseCurrentTarget(delta);
+        }
     }
 
     chaseTarget(target: Actor) {
-        const targetVector = target.getPosition().subtract(this.getPosition());
+        this.currentTarget = target;
+    }
 
-        console.log(`Distance to target: ${targetVector.findLength()}`);
+    chasingTarget(target?: Actor) {
+        return target != undefined 
+        ? this.currentTarget == target
+        : this.currentTarget != null;
+    }
+
+    private chaseCurrentTarget(delta: number) {
+        const targetVector = this.currentTarget.getPosition().subtract(this.getPosition());
 
         const maxMoveAmount = .5;
 
@@ -36,7 +51,7 @@ export class Ghost extends Actor {
             Math.max(Math.min(targetVector.getY(), maxMoveAmount), -maxMoveAmount)
         );
 
-        this.move(moveVector);
+        this.move(moveVector.scale(Ghost.MoveSpeed * delta / 1000));
 
         if (moveVector.getX()) {
             this.flipX = moveVector.getX() < 0;

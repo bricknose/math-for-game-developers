@@ -61,8 +61,13 @@ export class MainGameScene extends Phaser.Scene {
 
     update(): void {
         const closestGhost = this.findClosestGhost();
-        if (closestGhost) {
-            closestGhost.chaseTarget(this.player);
+
+        for (let ghost of this.ghosts) {
+            if (ghost != closestGhost && ghost.chasingTarget(this.player)) {
+                ghost.chaseTarget(null);
+            } else if (ghost == closestGhost && !ghost.chasingTarget(this.player)) {
+                ghost.chaseTarget(this.player);
+            }
         }
     }
 
