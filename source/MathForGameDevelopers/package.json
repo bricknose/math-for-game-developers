@@ -1,21 +1,22 @@
 {
-  "name": "math-for-game-developers",
+  "name": "mathforgamedevelopers",
   "version": "1.0.0",
-  "description": "",
+  "description": "Stepping through the Math for Game Developers YouTube series (https://www.youtube.com/watch?v=sKCF8A3XGxQ&list=PLW3Zl3wyJwWOpdhYedlD-yCB7WQoHf-My)",
   "main": "dist/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack --progress --profile",
-    "watch": "webpack --progress --profile --watch",
+    "build": "webpack",
+    "watch": "webpack --watch",
+    "deploy": "live-server --port=8085",
     "production": "webpack --progress --profile --mode production"
   },
-  "keywords": [],
-  "author": "",
+  "author": "bricknose",
   "license": "ISC",
   "devDependencies": {
-    "ts-loader": "^6.0.2",
-    "typescript": "^3.5.1",
-    "webpack": "^4.33.0",
-    "webpack-cli": "^3.3.4"
-  }
+    "live-server": "^1.2.1",
+    "phaser": "^3.18.1",
+    "ts-loader": "^6.0.4",
+    "typescript": "^3.5.2",
+    "webpack": "^4.35.0",
+    "webpack-cli": "^3.3.5"
+  }
 }

@@ -2553,20 +2553,28 @@ declare namespace Phaser {
 
                 /**
                  * The horizontally flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipX: boolean;
 
                 /**
                  * The vertically flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipY: boolean;
 
                 /**
                  * Toggles the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 toggleFlipX(): this;
 
@@ -2577,6 +2585,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param value The flipped state. `false` for no flip, or `true` to be flipped.
                  */
                 setFlipX(value: boolean): this;
@@ -2589,6 +2601,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal and vertical flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped will render inversed on the flipped axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  */
@@ -2891,6 +2907,13 @@ declare namespace Phaser {
                  * @param delta The delta time, in ms, elapsed since the last frame.
                  */
                 protected update(time: integer, delta: number): void;
+
+                /**
+                 * The event handler that manages the `resize` event dispatched by the Scale Manager.
+                 * @param gameSize The default Game Size object. This is the un-modified game dimensions.
+                 * @param baseSize The base Size object. The game dimensions multiplied by the resolution. The canvas width / height values match this.
+                 */
+                onResize(gameSize: Phaser.Structs.Size, baseSize: Phaser.Structs.Size): void;
 
                 /**
                  * Resizes all cameras to the given dimensions.
@@ -4032,13 +4055,13 @@ declare namespace Phaser {
 
         /**
          * Returns the current game frame.
+         * 
          * When the game starts running, the frame is incremented every time Request Animation Frame, or Set Timeout, fires.
          */
         getFrame(): number;
 
         /**
-         * Returns the current game timestamp.
-         * When the game starts running, the frame is incremented every time Request Animation Frame, or Set Timeout, fires.
+         * Returns the time that the current game step started at, as based on `performance.now`.
          */
         getTime(): number;
 
@@ -4265,11 +4288,6 @@ declare namespace Phaser {
             readonly inputSmoothFactor: integer;
 
             /**
-             * Should Phaser use a queued input system for native DOM Events or not?
-             */
-            readonly inputQueue: boolean;
-
-            /**
              * Should Phaser listen for input events on the Window? If you disable this, events like 'POINTER_UP_OUTSIDE' will no longer fire.
              */
             readonly inputWindowEvents: boolean;
@@ -4323,6 +4341,11 @@ declare namespace Phaser {
              * When set to `true`, WebGL uses linear interpolation to draw scaled or rotated textures, giving a smooth appearance. When set to `false`, WebGL uses nearest-neighbor interpolation, giving a crisper appearance. `false` also disables antialiasing of the game canvas itself, if the browser supports it, when the game canvas is scaled.
              */
             readonly antialias: boolean;
+
+            /**
+             * When set to `true` it will create a desynchronized context for both 2D and WebGL. See https://developers.google.com/web/updates/2019/05/desynchronized for details.
+             */
+            readonly desynchronized: boolean;
 
             /**
              * Draw texture-based Game Objects at only whole-integer positions. Game Objects without textures, like Graphics, ignore this property.
@@ -4680,69 +4703,84 @@ declare namespace Phaser {
             readonly forceSetTimeOut: boolean;
 
             /**
-             * [description]
+             * The time, calculated at the start of the current step, as smoothed by the delta value.
              */
-            time: integer;
+            time: number;
 
             /**
-             * [description]
+             * The time at which the game started running. This value is adjusted if the game is then
+             * paused and resumes.
              */
-            startTime: integer;
+            startTime: number;
 
             /**
-             * [description]
+             * The time, as returned by `performance.now` of the previous step.
              */
-            lastTime: integer;
+            lastTime: number;
 
             /**
-             * [description]
+             * The current frame the game is on. This counter is incremented once every game step, regardless of how much
+             * time has passed and is unaffected by delta smoothing.
              */
             readonly frame: integer;
 
             /**
-             * [description]
+             * Is the browser currently considered in focus by the Page Visibility API?
+             * This value is set in the `blur` method, which is called automatically by the Game instance.
              */
             readonly inFocus: boolean;
 
             /**
-             * [description]
+             * The delta time, in ms, since the last game step. This is a clamped and smoothed average value.
              */
             delta: integer;
 
             /**
-             * [description]
+             * Internal index of the delta history position.
              */
             deltaIndex: integer;
 
             /**
-             * [description]
+             * Internal array holding the previous delta values, used for delta smoothing.
              */
             deltaHistory: integer[];
 
             /**
-             * [description]
+             * The maximum number of delta values that are retained in order to calculate a smoothed moving average.
+             * 
+             * This can be changed in the Game Config via the `fps.deltaHistory` property. The default is 10.
              */
             deltaSmoothingMax: integer;
 
             /**
-             * [description]
+             * The number of frames that the cooldown is set to after the browser panics over the FPS rate, usually
+             * as a result of switching tabs and regaining focus.
+             * 
+             * This can be changed in the Game Config via the `fps.panicMax` property. The default is 120.
              */
             panicMax: integer;
 
             /**
              * The actual elapsed time in ms between one update and the next.
-             * Unlike with `delta` no smoothing, capping, or averaging is applied to this value.
-             * So please be careful when using this value in calculations.
+             * 
+             * Unlike with `delta`, no smoothing, capping, or averaging is applied to this value.
+             * So please be careful when using this value in math calculations.
              */
             rawDelta: number;
 
             /**
-             * Called when the DOM window.onBlur event triggers.
+             * The time, as returned by `performance.now` at the very start of the current step.
+             * This can differ from the `time` value in that it isn't calculated based on the delta value.
+             */
+            now: number;
+
+            /**
+             * Called by the Game instance when the DOM window.onBlur event triggers.
              */
             blur(): void;
 
             /**
-             * Called when the DOM window.onFocus event triggers.
+             * Called by the Game instance when the DOM window.onFocus event triggers.
              */
             focus(): void;
 
@@ -4757,7 +4795,8 @@ declare namespace Phaser {
             resume(): void;
 
             /**
-             * [description]
+             * Resets the time, lastTime, fps averages and delta history.
+             * Called automatically when a browser sleeps them resumes.
              */
             resetDelta(): void;
 
@@ -4772,12 +4811,11 @@ declare namespace Phaser {
              * The main step method. This is called each time the browser updates, either by Request Animation Frame,
              * or by Set Timeout. It is responsible for calculating the delta values, frame totals, cool down history and more.
              * You generally should never call this method directly.
-             * @param time The current time. Either a High Resolution Timer value if it comes from Request Animation Frame, or Date.now if using SetTimeout.
              */
-            step(time: number): void;
+            step(): void;
 
             /**
-             * Manually calls TimeStep.step, passing in the performance.now value to it.
+             * Manually calls `TimeStep.step`.
              */
             tick(): void;
 
@@ -8364,6 +8402,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -8468,6 +8515,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -9224,6 +9278,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -9328,6 +9391,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -9845,6 +9915,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -9949,6 +10028,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -10663,18 +10749,26 @@ declare namespace Phaser {
             interface Flip {
                 /**
                  * The horizontally flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipX: boolean;
                 /**
                  * The vertically flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipY: boolean;
                 /**
                  * Toggles the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 toggleFlipX(): this;
                 /**
@@ -10683,6 +10777,10 @@ declare namespace Phaser {
                 toggleFlipY(): this;
                 /**
                  * Sets the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param value The flipped state. `false` for no flip, or `true` to be flipped.
                  */
                 setFlipX(value: boolean): this;
@@ -10693,6 +10791,10 @@ declare namespace Phaser {
                 setFlipY(value: boolean): this;
                 /**
                  * Sets the horizontal and vertical flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped will render inversed on the flipped axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  */
@@ -10722,6 +10824,13 @@ declare namespace Phaser {
                  */
                 getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
                 /**
+                 * Gets the top-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+                /**
                  * Gets the top-right corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -10729,12 +10838,33 @@ declare namespace Phaser {
                  */
                 getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
                 /**
+                 * Gets the left-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+                /**
+                 * Gets the right-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+                /**
                  * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
                  * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
                  */
                 getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+                /**
+                 * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
                 /**
                  * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
@@ -10887,7 +11017,7 @@ declare namespace Phaser {
                  * @param path The Path this PathFollower is following. It can only follow one Path at a time.
                  * @param config Settings for the PathFollower.
                  */
-                setPath(path: Phaser.Curves.Path, config?: Phaser.Types.GameObjects.PathFollower.PathConfig): Phaser.GameObjects.PathFollower;
+                setPath(path: Phaser.Curves.Path, config?: number | Phaser.Types.GameObjects.PathFollower.PathConfig | Phaser.Types.Tweens.NumberTweenBuilderConfig): Phaser.GameObjects.PathFollower;
                 /**
                  * Set whether the PathFollower should automatically rotate to point in the direction of the Path.
                  * @param value Whether the PathFollower should automatically rotate to point in the direction of the Path.
@@ -10905,7 +11035,7 @@ declare namespace Phaser {
                  * @param config The duration of the follow, or a PathFollower config object. Default {}.
                  * @param startAt Optional start position of the follow, between 0 and 1. Default 0.
                  */
-                startFollow(config?: number | Phaser.Types.GameObjects.PathFollower.PathConfig, startAt?: number): Phaser.GameObjects.PathFollower;
+                startFollow(config?: number | Phaser.Types.GameObjects.PathFollower.PathConfig | Phaser.Types.Tweens.NumberTweenBuilderConfig, startAt?: number): Phaser.GameObjects.PathFollower;
                 /**
                  * Pauses this PathFollower. It will still continue to render, but it will remain motionless at the
                  * point on the Path at which you paused it.
@@ -11324,6 +11454,14 @@ declare namespace Phaser {
                  */
                 w: number;
                 /**
+                 * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+                 * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+                 * 
+                 * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+                 * isn't the case, use the `scaleX` or `scaleY` properties instead.
+                 */
+                scale: number;
+                /**
                  * The horizontal scale of this Game Object.
                  */
                 scaleX: number;
@@ -11414,6 +11552,12 @@ declare namespace Phaser {
                  * @param parentMatrix A temporary matrix to hold parent values during the calculations.
                  */
                 getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+                /**
+                 * Gets the sum total rotation of all of this Game Objects parent Containers.
+                 * 
+                 * The returned value is in radians and will be zero if this Game Object has no parent container.
+                 */
+                getParentRotation(): number;
             }
 
             /**
@@ -12475,6 +12619,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -12579,6 +12732,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -13344,6 +13504,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -13448,6 +13617,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -13629,20 +13805,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -13653,6 +13837,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -13665,6 +13853,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -14014,6 +14206,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -14118,6 +14319,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -14632,7 +14840,7 @@ declare namespace Phaser {
              * Note: This method will only be available if Tweens have been built into Phaser.
              * @param config The Tween configuration.
              */
-            tween(config: object): Phaser.Tweens.Tween;
+            tween(config: Phaser.Types.Tweens.TweenBuilderConfig | object): Phaser.Tweens.Tween;
 
         }
 
@@ -15375,7 +15583,7 @@ declare namespace Phaser {
              * Note: This method will only be available Tweens have been built into Phaser.
              * @param config The Tween configuration.
              */
-            tween(config: object): Phaser.Tweens.Tween;
+            tween(config: Phaser.Types.Tweens.TweenBuilderConfig | object): Phaser.Tweens.Tween;
 
         }
 
@@ -15868,24 +16076,42 @@ declare namespace Phaser {
             restore(): Phaser.GameObjects.Graphics;
 
             /**
-             * Translate the graphics.
+             * Inserts a translation command into this Graphics objects command buffer.
+             * 
+             * All objects drawn _after_ calling this method will be translated
+             * by the given amount.
+             * 
+             * This does not change the position of the Graphics object itself,
+             * only of the objects drawn by it after calling this method.
              * @param x The horizontal translation to apply.
              * @param y The vertical translation to apply.
              */
-            translate(x: number, y: number): Phaser.GameObjects.Graphics;
+            translateCanvas(x: number, y: number): Phaser.GameObjects.Graphics;
 
             /**
-             * Scale the graphics.
+             * Inserts a scale command into this Graphics objects command buffer.
+             * 
+             * All objects drawn _after_ calling this method will be scaled
+             * by the given amount.
+             * 
+             * This does not change the scale of the Graphics object itself,
+             * only of the objects drawn by it after calling this method.
              * @param x The horizontal scale to apply.
              * @param y The vertical scale to apply.
              */
-            scale(x: number, y: number): Phaser.GameObjects.Graphics;
+            scaleCanvas(x: number, y: number): Phaser.GameObjects.Graphics;
 
             /**
-             * Rotate the graphics.
+             * Inserts a rotation command into this Graphics objects command buffer.
+             * 
+             * All objects drawn _after_ calling this method will be rotated
+             * by the given amount.
+             * 
+             * This does not change the rotation of the Graphics object itself,
+             * only of the objects drawn by it after calling this method.
              * @param radians The rotation angle, in radians.
              */
-            rotate(radians: number): Phaser.GameObjects.Graphics;
+            rotateCanvas(radians: number): Phaser.GameObjects.Graphics;
 
             /**
              * Clear the command buffer and reset the fill style and line style to their defaults.
@@ -16153,6 +16379,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -16257,6 +16492,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -16368,7 +16610,13 @@ declare namespace Phaser {
             /**
              * The class to create new group members from.
              */
-            classType: Phaser.Types.GameObjects.Group.GroupClassTypeConstructor;
+            classType: Function;
+
+            /**
+             * The name of this group.
+             * Empty by default and never populated by Phaser, this is left for developers to use.
+             */
+            name: string;
 
             /**
              * Whether this group runs its {@link Phaser.GameObjects.Group#preUpdate} method
@@ -16825,20 +17073,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -16849,6 +17105,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -16861,6 +17121,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -16887,6 +17151,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -16895,12 +17167,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -17382,6 +17678,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -17486,6 +17791,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -17925,6 +18237,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -17933,12 +18253,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -18175,6 +18519,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -18279,6 +18632,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -18532,9 +18892,9 @@ declare namespace Phaser {
                 steppedEmit(): number;
 
                 /**
-                 * An `onEmit` callback that returns an eased value between the
-                 * {@link Phaser.GameObjects.Particles.EmitterOp#start} and {@link Phaser.GameObjects.Particles.EmitterOp#end}
-                 * range.
+                 * An `onEmit` callback for an eased property.
+                 * 
+                 * It prepares the particle for easing by {@link Phaser.GameObjects.Particles.EmitterOp#easeValueUpdate}.
                  * @param particle The particle.
                  * @param key The name of the property.
                  */
@@ -19143,7 +19503,7 @@ declare namespace Phaser {
                  * @param x The x-coordinate of the particle origin.
                  * @param y The y-coordinate of the particle origin.
                  */
-                setPosition(x: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object, y: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setPosition(x: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType, y: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets or modifies a rectangular boundary constraining the particles.
@@ -19161,39 +19521,39 @@ declare namespace Phaser {
                  * Changes the emitter to point mode.
                  * @param value The speed, in pixels per second.
                  */
-                setSpeedX(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setSpeedX(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the initial vertical speed of emitted particles.
                  * Changes the emitter to point mode.
                  * @param value The speed, in pixels per second.
                  */
-                setSpeedY(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setSpeedY(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the initial radial speed of emitted particles.
                  * Changes the emitter to radial mode.
                  * @param value The speed, in pixels per second.
                  */
-                setSpeed(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setSpeed(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the horizontal scale of emitted particles.
                  * @param value The scale, relative to 1.
                  */
-                setScaleX(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setScaleX(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the vertical scale of emitted particles.
                  * @param value The scale, relative to 1.
                  */
-                setScaleY(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setScaleY(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the scale of emitted particles.
                  * @param value The scale, relative to 1.
                  */
-                setScale(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setScale(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the horizontal gravity applied to emitted particles.
@@ -19218,31 +19578,31 @@ declare namespace Phaser {
                  * Sets the opacity of emitted particles.
                  * @param value A value between 0 (transparent) and 1 (opaque).
                  */
-                setAlpha(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setAlpha(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the angle of a {@link Phaser.GameObjects.Particles.ParticleEmitter#radial} particle stream.
                  * @param value The angle of the initial velocity of emitted particles.
                  */
-                setEmitterAngle(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setEmitterAngle(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the angle of a {@link Phaser.GameObjects.Particles.ParticleEmitter#radial} particle stream.
                  * @param value The angle of the initial velocity of emitted particles.
                  */
-                setAngle(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setAngle(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the lifespan of newly emitted particles.
                  * @param value The particle lifespan, in ms.
                  */
-                setLifespan(value: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setLifespan(value: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the number of particles released at each flow cycle or explosion.
                  * @param quantity The number of particles to release at each flow cycle or explosion.
                  */
-                setQuantity(quantity: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setQuantity(quantity: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets the emitter's {@link Phaser.GameObjects.Particles.ParticleEmitter#frequency}
@@ -19250,7 +19610,7 @@ declare namespace Phaser {
                  * @param frequency The time interval (>= 0) of each flow cycle, in ms; or -1 to put the emitter in explosion mode.
                  * @param quantity The number of particles to release at each flow cycle or explosion.
                  */
-                setFrequency(frequency: number, quantity?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                setFrequency(frequency: number, quantity?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Sets or removes the {@link Phaser.GameObjects.Particles.ParticleEmitter#emitZone}.
@@ -19364,7 +19724,7 @@ declare namespace Phaser {
                  * @param frequency The time interval (>= 0) of each flow cycle, in ms.
                  * @param count The number of particles to emit at each flow cycle. Default 1.
                  */
-                flow(frequency: number, count?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object): Phaser.GameObjects.Particles.ParticleEmitter;
+                flow(frequency: number, count?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType): Phaser.GameObjects.Particles.ParticleEmitter;
 
                 /**
                  * Puts the emitter in explode mode (frequency = -1), stopping any current particle flow, and emits several particles all at once.
@@ -19830,6 +20190,15 @@ declare namespace Phaser {
                 w: number;
 
                 /**
+                 * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+                 * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+                 * 
+                 * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+                 * isn't the case, use the `scaleX` or `scaleY` properties instead.
+                 */
+                scale: number;
+
+                /**
                  * The horizontal scale of this Game Object.
                  */
                 scaleX: number;
@@ -19934,6 +20303,13 @@ declare namespace Phaser {
                  * @param parentMatrix A temporary matrix to hold parent values during the calculations.
                  */
                 getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+                /**
+                 * Gets the sum total rotation of all of this Game Objects parent Containers.
+                 * 
+                 * The returned value is in radians and will be zero if this Game Object has no parent container.
+                 */
+                getParentRotation(): number;
 
                 /**
                  * The visible state of the Game Object.
@@ -20275,20 +20651,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -20299,6 +20683,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -20311,6 +20699,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -20337,6 +20729,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -20345,12 +20745,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -20832,6 +21256,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -20938,6 +21371,13 @@ declare namespace Phaser {
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
 
             /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
+
+            /**
              * The visible state of the Game Object.
              * 
              * An invisible Game Object will skip rendering, but will still process update logic.
@@ -20969,7 +21409,7 @@ declare namespace Phaser {
              * @param path The Path this PathFollower is following. It can only follow one Path at a time.
              * @param config Settings for the PathFollower.
              */
-            setPath(path: Phaser.Curves.Path, config?: Phaser.Types.GameObjects.PathFollower.PathConfig): Phaser.GameObjects.PathFollower;
+            setPath(path: Phaser.Curves.Path, config?: number | Phaser.Types.GameObjects.PathFollower.PathConfig | Phaser.Types.Tweens.NumberTweenBuilderConfig): Phaser.GameObjects.PathFollower;
 
             /**
              * Set whether the PathFollower should automatically rotate to point in the direction of the Path.
@@ -20990,7 +21430,7 @@ declare namespace Phaser {
              * @param config The duration of the follow, or a PathFollower config object. Default {}.
              * @param startAt Optional start position of the follow, between 0 and 1. Default 0.
              */
-            startFollow(config?: number | Phaser.Types.GameObjects.PathFollower.PathConfig, startAt?: number): Phaser.GameObjects.PathFollower;
+            startFollow(config?: number | Phaser.Types.GameObjects.PathFollower.PathConfig | Phaser.Types.Tweens.NumberTweenBuilderConfig, startAt?: number): Phaser.GameObjects.PathFollower;
 
             /**
              * Pauses this PathFollower. It will still continue to render, but it will remain motionless at the
@@ -21272,6 +21712,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -21280,12 +21728,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -21507,6 +21979,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -21611,6 +22092,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -21794,7 +22282,7 @@ declare namespace Phaser {
              * 
              * If the dimensions given are the same as those already being used, calling this method will do nothing.
              * @param width The new width of the Render Texture.
-             * @param height The new height of the Render Texture. If not specified, will be set the same as the `width`.
+             * @param height The new height of the Render Texture. If not specified, will be set the same as the `width`. Default width.
              */
             resize(width: number, height?: number): this;
 
@@ -22147,20 +22635,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -22171,6 +22667,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -22183,6 +22683,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -22209,6 +22713,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -22217,12 +22729,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -22560,6 +23096,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -22664,6 +23209,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -23041,6 +23593,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -23049,12 +23609,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -23267,6 +23851,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -23371,6 +23964,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -23679,6 +24279,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -23687,12 +24295,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -23938,6 +24570,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -24042,6 +24683,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -24303,6 +24951,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -24311,12 +24967,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -24562,6 +25242,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -24666,6 +25355,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -24922,6 +25618,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -24930,12 +25634,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -25181,6 +25909,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -25285,6 +26022,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -25626,6 +26370,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -25634,12 +26386,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -25885,6 +26661,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -25989,6 +26774,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -26297,6 +27089,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -26305,12 +27105,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -26556,6 +27380,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -26660,6 +27493,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -26982,6 +27822,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -26990,12 +27838,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -27241,6 +28113,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -27347,6 +28228,13 @@ declare namespace Phaser {
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
 
             /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
+
+            /**
              * The visible state of the Game Object.
              * 
              * An invisible Game Object will skip rendering, but will still process update logic.
@@ -27376,6 +28264,9 @@ declare namespace Phaser {
          * thickness for the start and end of the line, allowing you to render lines that taper-off.
          * 
          * If you need to draw multiple lines in a sequence you may wish to use the Polygon Shape instead.
+         * 
+         * Be aware that as with all Game Objects the default origin is 0.5. If you need to draw a Line
+         * between two points and want the x1/y1 values to match the x/y values, then set the origin to 0.
          */
         class Line extends Phaser.GameObjects.Shape {
             /**
@@ -27620,6 +28511,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -27628,12 +28527,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -27879,6 +28802,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -27983,6 +28915,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -28242,6 +29181,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -28250,12 +29197,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -28501,6 +29472,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -28605,6 +29585,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -28847,6 +29834,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -28855,12 +29850,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -29106,6 +30125,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -29210,6 +30238,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -29542,6 +30577,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -29550,12 +30593,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -29801,6 +30868,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -29905,6 +30981,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -30190,6 +31273,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -30198,12 +31289,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -30449,6 +31564,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -30553,6 +31677,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -30812,6 +31943,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -30820,12 +31959,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -31071,6 +32234,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -31175,6 +32347,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -31367,20 +32546,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -31391,6 +32578,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -31403,6 +32594,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -31429,6 +32624,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -31437,12 +32640,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -31924,6 +33151,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -32030,6 +33266,13 @@ declare namespace Phaser {
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
 
             /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
+
+            /**
              * The visible state of the Game Object.
              * 
              * An invisible Game Object will skip rendering, but will still process update logic.
@@ -32094,7 +33337,7 @@ declare namespace Phaser {
              * @param text The text this Text object will display.
              * @param style The text style configuration object.
              */
-            constructor(scene: Phaser.Scene, x: number, y: number, text: string | string[], style: object);
+            constructor(scene: Phaser.Scene, x: number, y: number, text: string | string[], style: Phaser.Types.GameObjects.Text.TextSyle);
 
             /**
              * Returns an object containing dimensions of the Text object.
@@ -32386,12 +33629,14 @@ declare namespace Phaser {
             setWordWrapCallback(callback: TextStyleWordWrapCallback, scope?: object): Phaser.GameObjects.Text;
 
             /**
-             * Set the text alignment.
+             * Set the alignment of the text in this Text object.
              * 
-             * Expects values like `'left'`, `'right'`, `'center'` or `'justified'`.
-             * @param align The text alignment.
+             * The argument can be one of: `left`, `right`, `center` or `justify`.
+             * 
+             * Alignment only works if the Text object has more than one line of text.
+             * @param align The text alignment for multi-line text. Default 'left'.
              */
-            setAlign(align: string): Phaser.GameObjects.Text;
+            setAlign(align?: string): Phaser.GameObjects.Text;
 
             /**
              * Set the resolution used by this Text object.
@@ -32427,7 +33672,7 @@ declare namespace Phaser {
              * @param right The right padding value.
              * @param bottom The bottom padding value.
              */
-            setPadding(left: number | object, top: number, right: number, bottom: number): Phaser.GameObjects.Text;
+            setPadding(left: number | Phaser.Types.GameObjects.Text.TextPadding, top: number, right: number, bottom: number): Phaser.GameObjects.Text;
 
             /**
              * Set the maximum number of lines to draw.
@@ -32675,20 +33920,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -32699,6 +33952,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -32711,6 +33968,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -32737,6 +33998,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -32745,12 +34014,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -33088,6 +34381,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -33194,6 +34496,13 @@ declare namespace Phaser {
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
 
             /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
+
+            /**
              * The visible state of the Game Object.
              * 
              * An invisible Game Object will skip rendering, but will still process update logic.
@@ -33223,7 +34532,7 @@ declare namespace Phaser {
              * @param text The Text object that this TextStyle is styling.
              * @param style The style settings to set.
              */
-            constructor(text: Phaser.GameObjects.Text, style: object);
+            constructor(text: Phaser.GameObjects.Text, style: Phaser.Types.GameObjects.Text.TextSyle);
 
             /**
              * The Text object that this TextStyle is styling.
@@ -33336,12 +34645,12 @@ declare namespace Phaser {
             testString: string;
 
             /**
-             * The amount of horizontal padding adding to the width of the text when calculating the font metrics.
+             * The amount of horizontal padding added to the width of the text when calculating the font metrics.
              */
             baselineX: number;
 
             /**
-             * The amount of vertical padding adding to the width of the text when calculating the font metrics.
+             * The amount of vertical padding added to the height of the text when calculating the font metrics.
              */
             baselineY: number;
 
@@ -33351,7 +34660,7 @@ declare namespace Phaser {
              * @param updateText Whether to update the text immediately. Default true.
              * @param setDefaults Use the default values is not set, or the local values. Default false.
              */
-            setStyle(style: object, updateText?: boolean, setDefaults?: boolean): Phaser.GameObjects.Text;
+            setStyle(style: Phaser.Types.GameObjects.Text.TextSyle, updateText?: boolean, setDefaults?: boolean): Phaser.GameObjects.Text;
 
             /**
              * Synchronize the font settings to the given Canvas Rendering Context.
@@ -33531,12 +34840,14 @@ declare namespace Phaser {
             setWordWrapCallback(callback: TextStyleWordWrapCallback, scope?: object): Phaser.GameObjects.Text;
 
             /**
-             * Set the text alignment.
+             * Set the alignment of the text in this Text object.
              * 
-             * Expects values like `'left'`, `'right'`, `'center'` or `'justified'`.
-             * @param align The text alignment.
+             * The argument can be one of: `left`, `right`, `center` or `justify`.
+             * 
+             * Alignment only works if the Text object has more than one line of text.
+             * @param align The text alignment for multi-line text. Default 'left'.
              */
-            setAlign(align: string): Phaser.GameObjects.Text;
+            setAlign(align?: string): Phaser.GameObjects.Text;
 
             /**
              * Set the maximum number of lines to draw.
@@ -33938,20 +35249,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -33962,6 +35281,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -33974,6 +35297,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -34000,6 +35327,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -34008,12 +35343,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -34351,6 +35710,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -34455,6 +35823,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -34682,6 +36057,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -34690,12 +36073,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -34790,6 +36197,15 @@ declare namespace Phaser {
              * The w position of this Game Object.
              */
             w: number;
+
+            /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
 
             /**
              * The horizontal scale of this Game Object.
@@ -34896,6 +36312,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The horizontal scroll factor of this Game Object.
@@ -37049,14 +38472,19 @@ declare namespace Phaser {
         var TOUCH_END: integer;
 
         /**
+         * The pointer lock has changed.
+         */
+        var POINTER_LOCK_CHANGE: integer;
+
+        /**
          * A touch pointer has been been cancelled by the browser.
          */
         var TOUCH_CANCEL: integer;
 
         /**
-         * The pointer lock has changed.
+         * The mouse wheel changes.
          */
-        var POINTER_LOCK_CHANGE: integer;
+        var MOUSE_WHEEL: integer;
 
         /**
          * Creates a new Interactive Object.
@@ -37484,6 +38912,28 @@ declare namespace Phaser {
             const GAMEOBJECT_POINTER_UP: any;
 
             /**
+             * The Game Object Pointer Wheel Event.
+             * 
+             * This event is dispatched by an interactive Game Object if a pointer has its wheel moved while over it.
+             * 
+             * Listen to this event from a Game Object using: `gameObject.on('wheel', listener)`.
+             * Note that the scope of the listener is automatically set to be the Game Object instance itself.
+             * 
+             * To receive this event, the Game Object must have been set as interactive.
+             * See [GameObject.setInteractive]{@link Phaser.GameObjects.GameObject#setInteractive} for more details.
+             * 
+             * The event hierarchy is as follows:
+             * 
+             * 1. [GAMEOBJECT_POINTER_WHEEL]{@linkcode Phaser.Input.Events#event:GAMEOBJECT_POINTER_WHEEL}
+             * 2. [GAMEOBJECT_WHEEL]{@linkcode Phaser.Input.Events#event:GAMEOBJECT_WHEEL}
+             * 3. [POINTER_WHEEL]{@linkcode Phaser.Input.Events#event:POINTER_WHEEL}
+             * 
+             * With the top event being dispatched first and then flowing down the list. Note that higher-up event handlers can stop
+             * the propagation of this event.
+             */
+            const GAMEOBJECT_POINTER_WHEEL: any;
+
+            /**
              * The Game Object Up Input Event.
              * 
              * This event is dispatched by the Input Plugin belonging to a Scene if a pointer is released while over _any_ interactive Game Object.
@@ -37505,6 +38955,29 @@ declare namespace Phaser {
              * the propagation of this event.
              */
             const GAMEOBJECT_UP: any;
+
+            /**
+             * The Game Object Wheel Input Event.
+             * 
+             * This event is dispatched by the Input Plugin belonging to a Scene if a pointer has its wheel moved while over _any_ interactive Game Object.
+             * 
+             * Listen to this event from within a Scene using: `this.input.on('gameobjectwheel', listener)`.
+             * 
+             * To receive this event, the Game Objects must have been set as interactive.
+             * See [GameObject.setInteractive]{@link Phaser.GameObjects.GameObject#setInteractive} for more details.
+             * 
+             * To listen for this event from a _specific_ Game Object, use the [GAMEOBJECT_POINTER_WHEEL]{@linkcode Phaser.Input.Events#event:GAMEOBJECT_POINTER_WHEEL} event instead.
+             * 
+             * The event hierarchy is as follows:
+             * 
+             * 1. [GAMEOBJECT_POINTER_WHEEL]{@linkcode Phaser.Input.Events#event:GAMEOBJECT_POINTER_WHEEL}
+             * 2. [GAMEOBJECT_WHEEL]{@linkcode Phaser.Input.Events#event:GAMEOBJECT_WHEEL}
+             * 3. [POINTER_WHEEL]{@linkcode Phaser.Input.Events#event:POINTER_WHEEL}
+             * 
+             * With the top event being dispatched first and then flowing down the list. Note that higher-up event handlers can stop
+             * the propagation of this event.
+             */
+            const GAMEOBJECT_WHEEL: any;
 
             /**
              * The Input Plugin Game Out Event.
@@ -37680,6 +39153,24 @@ declare namespace Phaser {
              * the propagation of this event.
              */
             const POINTER_UP_OUTSIDE: any;
+
+            /**
+             * The Pointer Wheel Input Event.
+             * 
+             * This event is dispatched by the Input Plugin belonging to a Scene if a pointer has its wheel updated.
+             * 
+             * Listen to this event from within a Scene using: `this.input.on('wheel', listener)`.
+             * 
+             * The event hierarchy is as follows:
+             * 
+             * 1. [GAMEOBJECT_POINTER_WHEEL]{@linkcode Phaser.Input.Events#event:GAMEOBJECT_POINTER_WHEEL}
+             * 2. [GAMEOBJECT_WHEEL]{@linkcode Phaser.Input.Events#event:GAMEOBJECT_WHEEL}
+             * 3. [POINTER_WHEEL]{@linkcode Phaser.Input.Events#event:POINTER_WHEEL}
+             * 
+             * With the top event being dispatched first and then flowing down the list. Note that higher-up event handlers can stop
+             * the propagation of this event.
+             */
+            const POINTER_WHEEL: any;
 
             /**
              * The Input Plugin Pre-Update Event.
@@ -38288,7 +39779,7 @@ declare namespace Phaser {
          * 
          * Keyboard and Gamepad are plugins, handled directly by the InputPlugin class.
          * 
-         * It then manages the event queue, pointer creation and general hit test related operations.
+         * It then manages the events, pointer creation and general hit test related operations.
          * 
          * You rarely need to interact with the Input Manager directly, and as such, all of its properties and methods
          * should be considered private. Instead, you should use the Input Plugin, which is a Scene level system, responsible
@@ -38333,11 +39824,6 @@ declare namespace Phaser {
              * The Event Emitter instance that the Input Manager uses to emit events from.
              */
             events: Phaser.Events.EventEmitter;
-
-            /**
-             * A standard FIFO queue for the native DOM events waiting to be handled by the Input Manager.
-             */
-            queue: any[];
 
             /**
              * Are any mouse or touch pointers currently over the game canvas?
@@ -38402,36 +39888,12 @@ declare namespace Phaser {
             activePointer: Phaser.Input.Pointer;
 
             /**
-             * Reset every frame. Set to `true` if any of the Pointers are dirty this frame.
-             */
-            dirty: boolean;
-
-            /**
              * If the top-most Scene in the Scene List receives an input it will stop input from
              * propagating any lower down the scene list, i.e. if you have a UI Scene at the top
              * and click something on it, that click will not then be passed down to any other
              * Scene below. Disable this to have input events passed through all Scenes, all the time.
              */
             globalTopOnly: boolean;
-
-            /**
-             * An internal flag that controls if the Input Manager will ignore or process native DOM events this frame.
-             * Set via the InputPlugin.stopPropagation method.
-             */
-            ignoreEvents: boolean;
-
-            /**
-             * Use the internal event queue or not?
-             * 
-             * Set this via the Game Config with the `inputQueue` property.
-             * 
-             * Phaser 3.15.1 and earlier used a event queue by default.
-             * 
-             * This was changed in version 3.16 to use an immediate-mode system.
-             * The previous queue based version remains and is left under this flag for backwards
-             * compatibility. This flag, along with the legacy system, will be removed in a future version.
-             */
-            useQueue: boolean;
 
             /**
              * The time this Input Manager was last updated.
@@ -38486,100 +39948,10 @@ declare namespace Phaser {
              * Internal method that gets a list of all the active Input Plugins in the game
              * and updates each of them in turn, in reverse order (top to bottom), to allow
              * for DOM top-level event handling simulation.
-             * @param time The time value from the most recent Game step. Typically a high-resolution timer value, or Date.now().
-             * @param delta The delta value since the last frame. This is smoothed to avoid delta spikes by the TimeStep class.
+             * @param type The type of event to process.
+             * @param pointers An array of Pointers on which the event occurred.
              */
-            updateInputPlugins(time: number, delta: number): void;
-
-            /**
-             * **Note:** As of Phaser 3.16 this method is no longer required _unless_ you have set `input.queue = true`
-             * in your game config, to force it to use the legacy event queue system. This method is deprecated and
-             * will be removed in a future version.
-             * 
-             * Adds a callback to be invoked whenever the native DOM `mouseup` or `touchend` events are received.
-             * By setting the `isOnce` argument you can control if the callback is called once,
-             * or every time the DOM event occurs.
-             * 
-             * Callbacks passed to this method are invoked _immediately_ when the DOM event happens,
-             * within the scope of the DOM event handler. Therefore, they are considered as 'native'
-             * from the perspective of the browser. This means they can be used for tasks such as
-             * opening new browser windows, or anything which explicitly requires user input to activate.
-             * However, as a result of this, they come with their own risks, and as such should not be used
-             * for general game input, but instead be reserved for special circumstances.
-             * 
-             * If all you're trying to do is execute a callback when a pointer is released, then
-             * please use the internal Input event system instead.
-             * 
-             * Please understand that these callbacks are invoked when the browser feels like doing so,
-             * which may be entirely out of the normal flow of the Phaser Game Loop. Therefore, you should absolutely keep
-             * Phaser related operations to a minimum in these callbacks. For example, don't destroy Game Objects,
-             * change Scenes or manipulate internal systems, otherwise you run a very real risk of creating
-             * heisenbugs (https://en.wikipedia.org/wiki/Heisenbug) that prove a challenge to reproduce, never mind
-             * solve.
-             * @param callback The callback to be invoked on this dom event.
-             * @param isOnce `true` if the callback will only be invoked once, `false` to call every time this event happens. Default true.
-             */
-            addUpCallback(callback: Function, isOnce?: boolean): this;
-
-            /**
-             * **Note:** As of Phaser 3.16 this method is no longer required _unless_ you have set `input.queue = true`
-             * in your game config, to force it to use the legacy event queue system. This method is deprecated and
-             * will be removed in a future version.
-             * 
-             * Adds a callback to be invoked whenever the native DOM `mousedown` or `touchstart` events are received.
-             * By setting the `isOnce` argument you can control if the callback is called once,
-             * or every time the DOM event occurs.
-             * 
-             * Callbacks passed to this method are invoked _immediately_ when the DOM event happens,
-             * within the scope of the DOM event handler. Therefore, they are considered as 'native'
-             * from the perspective of the browser. This means they can be used for tasks such as
-             * opening new browser windows, or anything which explicitly requires user input to activate.
-             * However, as a result of this, they come with their own risks, and as such should not be used
-             * for general game input, but instead be reserved for special circumstances.
-             * 
-             * If all you're trying to do is execute a callback when a pointer is down, then
-             * please use the internal Input event system instead.
-             * 
-             * Please understand that these callbacks are invoked when the browser feels like doing so,
-             * which may be entirely out of the normal flow of the Phaser Game Loop. Therefore, you should absolutely keep
-             * Phaser related operations to a minimum in these callbacks. For example, don't destroy Game Objects,
-             * change Scenes or manipulate internal systems, otherwise you run a very real risk of creating
-             * heisenbugs (https://en.wikipedia.org/wiki/Heisenbug) that prove a challenge to reproduce, never mind
-             * solve.
-             * @param callback The callback to be invoked on this dom event.
-             * @param isOnce `true` if the callback will only be invoked once, `false` to call every time this event happens. Default true.
-             */
-            addDownCallback(callback: Function, isOnce?: boolean): this;
-
-            /**
-             * **Note:** As of Phaser 3.16 this method is no longer required _unless_ you have set `input.queue = true`
-             * in your game config, to force it to use the legacy event queue system. This method is deprecated and
-             * will be removed in a future version.
-             * 
-             * Adds a callback to be invoked whenever the native DOM `mousemove` or `touchmove` events are received.
-             * By setting the `isOnce` argument you can control if the callback is called once,
-             * or every time the DOM event occurs.
-             * 
-             * Callbacks passed to this method are invoked _immediately_ when the DOM event happens,
-             * within the scope of the DOM event handler. Therefore, they are considered as 'native'
-             * from the perspective of the browser. This means they can be used for tasks such as
-             * opening new browser windows, or anything which explicitly requires user input to activate.
-             * However, as a result of this, they come with their own risks, and as such should not be used
-             * for general game input, but instead be reserved for special circumstances.
-             * 
-             * If all you're trying to do is execute a callback when a pointer is moved, then
-             * please use the internal Input event system instead.
-             * 
-             * Please understand that these callbacks are invoked when the browser feels like doing so,
-             * which may be entirely out of the normal flow of the Phaser Game Loop. Therefore, you should absolutely keep
-             * Phaser related operations to a minimum in these callbacks. For example, don't destroy Game Objects,
-             * change Scenes or manipulate internal systems, otherwise you run a very real risk of creating
-             * heisenbugs (https://en.wikipedia.org/wiki/Heisenbug) that prove a challenge to reproduce, never mind
-             * solve.
-             * @param callback The callback to be invoked on this dom event.
-             * @param isOnce `true` if the callback will only be invoked once, `false` to call every time this event happens. Default false.
-             */
-            addMoveCallback(callback: Function, isOnce?: boolean): this;
+            updateInputPlugins(type: integer, pointers: Phaser.Input.Pointer[]): void;
 
             /**
              * Performs a hit test using the given Pointer and camera, against an array of interactive Game Objects.
@@ -38661,7 +40033,12 @@ declare namespace Phaser {
          * sprite.on('pointerdown', callback, context);
          * ```
          * 
-         * Please see the Input examples and tutorials for more information.
+         * There are lots of game configuration options available relating to input.
+         * See the [Input Config object]{@linkcode Phaser.Types.Core.InputConfig} for more details, including how to deal with Phaser
+         * listening for input events outside of the canvas, how to set a default number of pointers, input
+         * capture settings and more.
+         * 
+         * Please also see the Input examples and tutorials for further information.
          */
         class InputPlugin extends Phaser.Events.EventEmitter {
             /**
@@ -38697,7 +40074,7 @@ declare namespace Phaser {
             manager: Phaser.Input.InputManager;
 
             /**
-             * If set, the Input Plugin will run its update loop every frame.
+             * If `true` this Input Plugin will process DOM input events.
              */
             enabled: boolean;
 
@@ -38739,7 +40116,7 @@ declare namespace Phaser {
              * 
              * This property only controls how often they will be polled if they have not been updated.
              * You should set this if you want to have Game Objects constantly check against the pointers, even
-             * if the pointer didn't move itself.
+             * if the pointer didn't itself move.
              * 
              * Set to 0 to poll constantly. Set to -1 to only poll on user movement.
              */
@@ -38759,6 +40136,14 @@ declare namespace Phaser {
              * Checks to see if both this plugin and the Scene to which it belongs is active.
              */
             isActive(): boolean;
+
+            /**
+             * This is called automatically by the Input Manager.
+             * It emits events for plugins to listen to and also handles polling updates, if enabled.
+             * @param time The current time. Either a High Resolution Timer value if it comes from Request Animation Frame, or Date.now if using SetTimeout.
+             * @param delta The delta time in ms since the last frame. This is a smoothed and capped value based on the FPS rate.
+             */
+            updatePoll(time: number, delta: number): boolean;
 
             /**
              * Clears a Game Object so it no longer has an Interactive Object associated with it.
@@ -39008,99 +40393,12 @@ declare namespace Phaser {
             sortGameObjects(gameObjects: Phaser.GameObjects.GameObject[]): Phaser.GameObjects.GameObject[];
 
             /**
-             * Causes the Input Manager to stop emitting any events for the remainder of this game step.
+             * This method should be called from within an input event handler, such as `pointerdown`.
+             * 
+             * When called, it stops the Input Manager from allowing _this specific event_ to be processed by any other Scene
+             * not yet handled in the scene list.
              */
             stopPropagation(): Phaser.Input.InputPlugin;
-
-            /**
-             * **Note:** As of Phaser 3.16 this method is no longer required _unless_ you have set `input.queue = true`
-             * in your game config, to force it to use the legacy event queue system. This method is deprecated and
-             * will be removed in a future version.
-             * 
-             * Adds a callback to be invoked whenever the native DOM `mouseup` or `touchend` events are received.
-             * By setting the `isOnce` argument you can control if the callback is called once,
-             * or every time the DOM event occurs.
-             * 
-             * Callbacks passed to this method are invoked _immediately_ when the DOM event happens,
-             * within the scope of the DOM event handler. Therefore, they are considered as 'native'
-             * from the perspective of the browser. This means they can be used for tasks such as
-             * opening new browser windows, or anything which explicitly requires user input to activate.
-             * However, as a result of this, they come with their own risks, and as such should not be used
-             * for general game input, but instead be reserved for special circumstances.
-             * 
-             * If all you're trying to do is execute a callback when a pointer is released, then
-             * please use the internal Input event system instead.
-             * 
-             * Please understand that these callbacks are invoked when the browser feels like doing so,
-             * which may be entirely out of the normal flow of the Phaser Game Loop. Therefore, you should absolutely keep
-             * Phaser related operations to a minimum in these callbacks. For example, don't destroy Game Objects,
-             * change Scenes or manipulate internal systems, otherwise you run a very real risk of creating
-             * heisenbugs (https://en.wikipedia.org/wiki/Heisenbug) that prove a challenge to reproduce, never mind
-             * solve.
-             * @param callback The callback to be invoked on this DOM event.
-             * @param isOnce `true` if the callback will only be invoked once, `false` to call every time this event happens. Default true.
-             */
-            addUpCallback(callback: Function, isOnce?: boolean): this;
-
-            /**
-             * **Note:** As of Phaser 3.16 this method is no longer required _unless_ you have set `input.queue = true`
-             * in your game config, to force it to use the legacy event queue system. This method is deprecated and
-             * will be removed in a future version.
-             * 
-             * Adds a callback to be invoked whenever the native DOM `mousedown` or `touchstart` events are received.
-             * By setting the `isOnce` argument you can control if the callback is called once,
-             * or every time the DOM event occurs.
-             * 
-             * Callbacks passed to this method are invoked _immediately_ when the DOM event happens,
-             * within the scope of the DOM event handler. Therefore, they are considered as 'native'
-             * from the perspective of the browser. This means they can be used for tasks such as
-             * opening new browser windows, or anything which explicitly requires user input to activate.
-             * However, as a result of this, they come with their own risks, and as such should not be used
-             * for general game input, but instead be reserved for special circumstances.
-             * 
-             * If all you're trying to do is execute a callback when a pointer is down, then
-             * please use the internal Input event system instead.
-             * 
-             * Please understand that these callbacks are invoked when the browser feels like doing so,
-             * which may be entirely out of the normal flow of the Phaser Game Loop. Therefore, you should absolutely keep
-             * Phaser related operations to a minimum in these callbacks. For example, don't destroy Game Objects,
-             * change Scenes or manipulate internal systems, otherwise you run a very real risk of creating
-             * heisenbugs (https://en.wikipedia.org/wiki/Heisenbug) that prove a challenge to reproduce, never mind
-             * solve.
-             * @param callback The callback to be invoked on this dom event.
-             * @param isOnce `true` if the callback will only be invoked once, `false` to call every time this event happens. Default true.
-             */
-            addDownCallback(callback: Function, isOnce?: boolean): this;
-
-            /**
-             * **Note:** As of Phaser 3.16 this method is no longer required _unless_ you have set `input.queue = true`
-             * in your game config, to force it to use the legacy event queue system. This method is deprecated and
-             * will be removed in a future version.
-             * 
-             * Adds a callback to be invoked whenever the native DOM `mousemove` or `touchmove` events are received.
-             * By setting the `isOnce` argument you can control if the callback is called once,
-             * or every time the DOM event occurs.
-             * 
-             * Callbacks passed to this method are invoked _immediately_ when the DOM event happens,
-             * within the scope of the DOM event handler. Therefore, they are considered as 'native'
-             * from the perspective of the browser. This means they can be used for tasks such as
-             * opening new browser windows, or anything which explicitly requires user input to activate.
-             * However, as a result of this, they come with their own risks, and as such should not be used
-             * for general game input, but instead be reserved for special circumstances.
-             * 
-             * If all you're trying to do is execute a callback when a pointer is moved, then
-             * please use the internal Input event system instead.
-             * 
-             * Please understand that these callbacks are invoked when the browser feels like doing so,
-             * which may be entirely out of the normal flow of the Phaser Game Loop. Therefore, you should absolutely keep
-             * Phaser related operations to a minimum in these callbacks. For example, don't destroy Game Objects,
-             * change Scenes or manipulate internal systems, otherwise you run a very real risk of creating
-             * heisenbugs (https://en.wikipedia.org/wiki/Heisenbug) that prove a challenge to reproduce, never mind
-             * solve.
-             * @param callback The callback to be invoked on this dom event.
-             * @param isOnce `true` if the callback will only be invoked once, `false` to call every time this event happens. Default false.
-             */
-            addMoveCallback(callback: Function, isOnce?: boolean): this;
 
             /**
              * Adds new Pointer objects to the Input Manager.
@@ -40728,6 +42026,13 @@ declare namespace Phaser {
                 onMouseOut: Function;
 
                 /**
+                 * The Mouse Wheel Event handler.
+                 * This function is sent the native DOM MouseEvent.
+                 * Initially empty and bound in the `startListeners` method.
+                 */
+                onMouseWheel: Function;
+
+                /**
                  * Internal pointerLockChange handler.
                  * This function is sent the native DOM MouseEvent.
                  * Initially empty and bound in the `startListeners` method.
@@ -40825,11 +42130,13 @@ declare namespace Phaser {
 
             /**
              * The DOM element the Pointer was pressed down on, taken from the DOM event.
+             * In a default set-up this will be the Canvas that Phaser is rendering to, or the Window element.
              */
             readonly downElement: any;
 
             /**
              * The DOM element the Pointer was released on, taken from the DOM event.
+             * In a default set-up this will be the Canvas that Phaser is rendering to, or the Window element.
              */
             readonly upElement: any;
 
@@ -40840,6 +42147,18 @@ declare namespace Phaser {
              * in the list should multiple cameras be positioned on-top of each other.
              */
             camera: Phaser.Cameras.Scene2D.Camera;
+
+            /**
+             * A read-only property that indicates which button was pressed, or released, on the pointer
+             * during the most recent event. It is only set during `up` and `down` events.
+             * 
+             * On Touch devices the value is always 0.
+             * 
+             * Users may change the configuration of buttons on their pointing device so that if an event's button property
+             * is zero, it may not have been caused by the button that is physically left–most on the pointing device;
+             * however, it should behave as if the left button was clicked in the standard button layout.
+             */
+            readonly button: integer;
 
             /**
              * 0: No button or un-initialized
@@ -40983,26 +42302,6 @@ declare namespace Phaser {
             isDown: boolean;
 
             /**
-             * A dirty flag for this Pointer, used internally by the Input Plugin.
-             */
-            dirty: boolean;
-
-            /**
-             * Is this Pointer considered as being "just down" or not?
-             */
-            justDown: boolean;
-
-            /**
-             * Is this Pointer considered as being "just up" or not?
-             */
-            justUp: boolean;
-
-            /**
-             * Is this Pointer considered as being "just moved" or not?
-             */
-            justMoved: boolean;
-
-            /**
              * Did the previous input event come from a Touch input (true) or Mouse? (false)
              */
             wasTouch: boolean;
@@ -41042,9 +42341,25 @@ declare namespace Phaser {
             active: boolean;
 
             /**
-             * Time when this Pointer was most recently updated by the Game step.
+             * Time when this Pointer was most recently updated by a DOM Event.
              */
             time: number;
+
+            /**
+             * The horizontal scroll amount that occurred due to the user moving a mouse wheel or similar input device.
+             */
+            deltaX: number;
+
+            /**
+             * The vertical scroll amount that occurred due to the user moving a mouse wheel or similar input device.
+             * This value will typically be less than 0 if the user scrolls up and greater than zero if scrolling down.
+             */
+            deltaY: number;
+
+            /**
+             * The z-axis scroll amount that occurred due to the user moving a mouse wheel or similar input device.
+             */
+            deltaZ: number;
 
             /**
              * Takes a Camera and returns a Vector2 containing the translated position of this Pointer
@@ -41083,6 +42398,31 @@ declare namespace Phaser {
              * Checks to see if the forward button is being held down on this Pointer.
              */
             forwardButtonDown(): boolean;
+
+            /**
+             * Checks to see if the left button was just released on this Pointer.
+             */
+            leftButtonReleased(): boolean;
+
+            /**
+             * Checks to see if the right button was just released on this Pointer.
+             */
+            rightButtonReleased(): boolean;
+
+            /**
+             * Checks to see if the middle button was just released on this Pointer.
+             */
+            middleButtonReleased(): boolean;
+
+            /**
+             * Checks to see if the back button was just released on this Pointer.
+             */
+            backButtonReleased(): boolean;
+
+            /**
+             * Checks to see if the forward button was just released on this Pointer.
+             */
+            forwardButtonReleased(): boolean;
 
             /**
              * If the Pointer has a button pressed down at the time this method is called, it will return the
@@ -41256,6 +42596,12 @@ declare namespace Phaser {
                  * Initially empty and bound in the `startListeners` method.
                  */
                 onTouchCancel: Function;
+
+                /**
+                 * The Touch Cancel event handler function specifically for events on the Window.
+                 * Initially empty and bound in the `startListeners` method.
+                 */
+                onTouchCancelWindow: Function;
 
                 /**
                  * The Touch Over event handler function.
@@ -48037,7 +49383,7 @@ declare namespace Phaser {
                 /**
                  * A scene or scenes to add to the game. If several are given, the first is started; the remainder are started only if they have `{ active: true }`. See the `sceneConfig` argument in `Phaser.Scenes.SceneManager#add`.
                  */
-                scene?: Phaser.Scene | Phaser.Scene[] | Phaser.Types.Scenes.SettingsConfig | Phaser.Types.Scenes.SettingsConfig[] | Phaser.Types.Scenes.CreateSceneFromObjectConfig | Phaser.Types.Scenes.CreateSceneFromObjectConfig[] | Function;
+                scene?: Phaser.Scene | Phaser.Scene[] | Phaser.Types.Scenes.SettingsConfig | Phaser.Types.Scenes.SettingsConfig[] | Phaser.Types.Scenes.CreateSceneFromObjectConfig | Phaser.Types.Scenes.CreateSceneFromObjectConfig[] | Function | Function[];
                 /**
                  * Seed for the random number generator.
                  */
@@ -48163,10 +49509,6 @@ declare namespace Phaser {
                  * The smoothing factor to apply during Pointer movement. See {@link Phaser.Input.Pointer#smoothFactor}.
                  */
                 smoothFactor?: number;
-                /**
-                 * Should Phaser use a queued input system for native DOM Events or not?
-                 */
-                inputQueue?: boolean;
                 /**
                  * Should Phaser listen for input events on the Window? If you disable this, events like 'POINTER_UP_OUTSIDE' will no longer fire.
                  */
@@ -48314,6 +49656,10 @@ declare namespace Phaser {
                  */
                 antialias?: boolean;
                 /**
+                 * When set to `true` it will create a desynchronized context for both 2D and WebGL. See https://developers.google.com/web/updates/2019/05/desynchronized for details.
+                 */
+                desynchronized?: boolean;
+                /**
                  * Sets `antialias` and `roundPixels` to true. This is the best setting for pixel-art games.
                  */
                 pixelArt?: boolean;
@@ -48322,7 +49668,7 @@ declare namespace Phaser {
                  */
                 roundPixels?: boolean;
                 /**
-                 * Whether the game canvas will be transparent.
+                 * Whether the game canvas will be transparent. Boolean that indicates if the canvas contains an alpha channel. If set to false, the browser now knows that the backdrop is always opaque, which can speed up drawing of transparent content and images.
                  */
                 transparent?: boolean;
                 /**
@@ -49069,16 +50415,15 @@ declare namespace Phaser {
             namespace Group {
                 type GroupCallback = (item: Phaser.GameObjects.GameObject)=>void;
 
-                /**
-                 * A constructor function (class) that can be assigned to `classType`.
-                 */
-                type GroupClassTypeConstructor = (scene: Phaser.Scene, x: number, y: number, texture: string, frame?: string | integer)=>void;
-
                 type GroupConfig = {
                     /**
                      * Sets {@link Phaser.GameObjects.Group#classType}.
                      */
-                    classType?: Phaser.Types.GameObjects.Group.GroupClassTypeConstructor;
+                    classType?: Function;
+                    /**
+                     * Sets {@link Phaser.GameObjects.Group#name}.
+                     */
+                    name?: string;
                     /**
                      * Sets {@link Phaser.GameObjects.Group#active}.
                      */
@@ -49118,9 +50463,7 @@ declare namespace Phaser {
                  * 
                  *     key.length * frame.length * frameQuantity * (yoyo ? 2 : 1) * (1 + repeat)
                  * 
-                 * In the simplest case, 1 + `repeat` objects will be created.
-                 * 
-                 * If `max` is positive, then the total created will not exceed `max`.
+                 * If `max` is nonzero, then the total created will not exceed `max`.
                  * 
                  * `key` is required. {@link Phaser.GameObjects.Group#defaultKey} is not used.
                  */
@@ -49128,15 +50471,15 @@ declare namespace Phaser {
                     /**
                      * The class of each new Game Object.
                      */
-                    classType?: Phaser.Types.GameObjects.Group.GroupClassTypeConstructor;
+                    classType?: Function;
                     /**
                      * The texture key of each new Game Object.
                      */
-                    key?: string;
+                    key?: string | string[];
                     /**
                      * The texture frame of each new Game Object.
                      */
-                    frame?: string | integer;
+                    frame?: string | string[] | integer | integer[];
                     /**
                      * The visible state of each new Game Object.
                      */
@@ -49296,10 +50639,14 @@ declare namespace Phaser {
                  */
                 type EmitterOpOnEmitCallback = (particle: Phaser.GameObjects.Particles.Particle, key: string, value: number)=>void;
 
+                type EmitterOpOnEmitType = number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | Phaser.Types.GameObjects.Particles.EmitterOpRandomConfig | Phaser.Types.GameObjects.Particles.EmitterOpRandomMinMaxConfig | Phaser.Types.GameObjects.Particles.EmitterOpRandomStartEndConfig | Phaser.Types.GameObjects.Particles.EmitterOpSteppedConfig | Phaser.Types.GameObjects.Particles.EmitterOpCustomEmitConfig;
+
                 /**
                  * The returned value updates the property for the duration of the particle's life.
                  */
                 type EmitterOpOnUpdateCallback = (particle: Phaser.GameObjects.Particles.Particle, key: string, t: number, value: number)=>void;
+
+                type EmitterOpOnUpdateType = Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | Phaser.Types.GameObjects.Particles.EmitterOpEaseConfig | Phaser.Types.GameObjects.Particles.EmitterOpCustomUpdateConfig;
 
                 /**
                  * Defines an operation yielding a random value within a range.
@@ -49526,91 +50873,91 @@ declare namespace Phaser {
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#accelerationX} (emit only).
                      */
-                    accelerationX?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    accelerationX?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#accelerationY} (emit only).
                      */
-                    accelerationY?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    accelerationY?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#alpha}.
                      */
-                    alpha?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | object;
+                    alpha?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType;
                     /**
-                     * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#angle} (emit only)
+                     * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#angle} (emit only).
                      */
-                    angle?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    angle?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#bounce} (emit only).
                      */
-                    bounce?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    bounce?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#delay} (emit only).
                      */
-                    delay?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    delay?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#lifespan} (emit only).
                      */
-                    lifespan?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    lifespan?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#maxVelocityX} (emit only).
                      */
-                    maxVelocityX?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    maxVelocityX?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#maxVelocityY} (emit only).
                      */
-                    maxVelocityY?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    maxVelocityY?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#moveToX} (emit only).
                      */
-                    moveToX?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    moveToX?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#moveToY} (emit only).
                      */
-                    moveToY?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    moveToY?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#quantity} (emit only).
                      */
-                    quantity?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    quantity?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#rotate}.
                      */
-                    rotate?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | object;
+                    rotate?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType;
                     /**
                      * As {@link Phaser.GameObjects.Particles.ParticleEmitter#setScale}.
                      */
-                    scale?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | object;
+                    scale?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#scaleX}.
                      */
-                    scaleX?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | object;
+                    scaleX?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#scaleY}.
                      */
-                    scaleY?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateCallback | object;
+                    scaleY?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType;
                     /**
                      * As {@link Phaser.GameObjects.Particles.ParticleEmitter#setSpeed} (emit only).
                      */
-                    speed?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    speed?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#speedX} (emit only).
                      */
-                    speedX?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    speedX?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#speedY} (emit only).
                      */
-                    speedY?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    speedY?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#tint}.
                      */
-                    tint?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    tint?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType | Phaser.Types.GameObjects.Particles.EmitterOpOnUpdateType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#x} (emit only).
                      */
-                    x?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    x?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * Sets {@link Phaser.GameObjects.Particles.ParticleEmitter#y} (emit only).
                      */
-                    y?: number | number[] | Phaser.Types.GameObjects.Particles.EmitterOpOnEmitCallback | object;
+                    y?: Phaser.Types.GameObjects.Particles.EmitterOpOnEmitType;
                     /**
                      * As {@link Phaser.GameObjects.Particles.ParticleEmitter#setEmitZone}.
                      */
@@ -49720,7 +51067,7 @@ declare namespace Phaser {
                     /**
                      * The duration of the path follow in ms. Must be `> 0`.
                      */
-                    duration: number;
+                    duration?: number;
                     /**
                      * The start position of the path follow, between 0 and 1. Must be less than `to`.
                      */
@@ -49810,6 +51157,174 @@ declare namespace Phaser {
                      * The size of the font.
                      */
                     fontSize: number;
+                };
+
+                /**
+                 * A Text Padding configuration object as used by the Text Style.
+                 */
+                type TextPadding = {
+                    /**
+                     * If set this value is used for both the left and right padding.
+                     */
+                    x?: number;
+                    /**
+                     * If set this value is used for both the top and bottom padding.
+                     */
+                    y?: number;
+                    /**
+                     * The amount of padding added to the left of the Text object.
+                     */
+                    left?: number;
+                    /**
+                     * The amount of padding added to the right of the Text object.
+                     */
+                    right?: number;
+                    /**
+                     * The amount of padding added to the top of the Text object.
+                     */
+                    top?: number;
+                    /**
+                     * The amount of padding added to the bottom of the Text object.
+                     */
+                    bottom?: number;
+                };
+
+                /**
+                 * A Text Shadow configuration object as used by the Text Style.
+                 */
+                type TextShadow = {
+                    /**
+                     * The horizontal offset of the shadow.
+                     */
+                    offsetX?: number;
+                    /**
+                     * The vertical offset of the shadow.
+                     */
+                    offsetY?: number;
+                    /**
+                     * The color of the shadow, given as a CSS string value.
+                     */
+                    color?: string;
+                    /**
+                     * The amount of blur applied to the shadow. Leave as zero for a hard shadow.
+                     */
+                    blur?: number;
+                    /**
+                     * Apply the shadow to the stroke effect on the Text object?
+                     */
+                    stroke?: boolean;
+                    /**
+                     * Apply the shadow to the fill effect on the Text object?
+                     */
+                    fill?: boolean;
+                };
+
+                /**
+                 * A Text Style configuration object as used by the Text Game Object.
+                 */
+                type TextSyle = {
+                    /**
+                     * The font the Text object will render with. This is a Canvas style font string.
+                     */
+                    fontFamily?: string;
+                    /**
+                     * The font size, as a CSS size string.
+                     */
+                    fontSize?: string;
+                    /**
+                     * Any addition font styles, such as 'strong'.
+                     */
+                    fontStyle?: string;
+                    /**
+                     * A solid fill color that is rendered behind the Text object. Given as a CSS string color such as `#ff0`.
+                     */
+                    backgroundColor?: string;
+                    /**
+                     * The color the Text is drawn in. Given as a CSS string color such as `#fff` or `rgb()`.
+                     */
+                    color?: string;
+                    /**
+                     * The color used to stroke the Text if the `strokeThickness` property is greater than zero.
+                     */
+                    stroke?: string;
+                    /**
+                     * The thickness of the stroke around the Text. Set to zero for no stroke.
+                     */
+                    strokeThickness?: number;
+                    /**
+                     * The Text shadow configuration object.
+                     */
+                    shadow?: Phaser.Types.GameObjects.Text.TextShadow;
+                    /**
+                     * A Text Padding object.
+                     */
+                    padding?: Phaser.Types.GameObjects.Text.TextPadding;
+                    /**
+                     * The alignment of the Text. This only impacts multi-line text. Either `left`, `right`, `center` or `justify`.
+                     */
+                    align?: string;
+                    /**
+                     * The maximum number of lines to display within the Text object.
+                     */
+                    maxLines?: integer;
+                    /**
+                     * Force the Text object to have the exact width specified in this property. Leave as zero for it to change accordingly to content.
+                     */
+                    fixedWidth?: number;
+                    /**
+                     * Force the Text object to have the exact height specified in this property. Leave as zero for it to change accordingly to content.
+                     */
+                    fixedHeight?: number;
+                    /**
+                     * Sets the resolution (DPI setting) of the Text object. Leave at zero for it to use the game resolution.
+                     */
+                    resolution?: number;
+                    /**
+                     * Set to `true` if this Text object should render from right-to-left.
+                     */
+                    rtl?: boolean;
+                    /**
+                     * This is the string used to aid Canvas in calculating the height of the font.
+                     */
+                    testString?: string;
+                    /**
+                     * The amount of horizontal padding added to the width of the text when calculating the font metrics.
+                     */
+                    baselineX?: number;
+                    /**
+                     * The amount of vertical padding added to the height of the text when calculating the font metrics.
+                     */
+                    baselineY?: number;
+                    /**
+                     * The Text Word wrap configuration object.
+                     */
+                    wordWrap?: Phaser.Types.GameObjects.Text.TextWordWrap;
+                    /**
+                     * A Text Metrics object. Use this to avoid expensive font size calculations in text heavy games.
+                     */
+                    metrics?: Phaser.Types.GameObjects.Text.TextMetrics;
+                };
+
+                /**
+                 * A Text Word Wrap configuration object as used by the Text Style configuration.
+                 */
+                type TextWordWrap = {
+                    /**
+                     * The width at which text should be considered for word-wrapping.
+                     */
+                    width?: number;
+                    /**
+                     * Provide a custom callback when word wrapping is enabled.
+                     */
+                    callback?: TextStyleWordWrapCallback;
+                    /**
+                     * The context in which the word wrap callback is invoked.
+                     */
+                    callbackScope?: any;
+                    /**
+                     * Use basic or advanced word wrapping?
+                     */
+                    useAdvancedWrap?: boolean;
                 };
 
             }
@@ -50183,13 +51698,21 @@ declare namespace Phaser {
                  */
                 dragState: 0 | 1 | 2;
                 /**
-                 * The x coordinate that the Pointer started dragging this Interactive Object from.
+                 * The x coordinate of the Game Object that owns this Interactive Object when the drag started.
                  */
                 dragStartX: number;
                 /**
-                 * The y coordinate that the Pointer started dragging this Interactive Object from.
+                 * The y coordinate of the Game Object that owns this Interactive Object when the drag started.
                  */
                 dragStartY: number;
+                /**
+                 * The x coordinate that the Pointer started dragging this Interactive Object from.
+                 */
+                dragStartXGlobal: number;
+                /**
+                 * The y coordinate that the Pointer started dragging this Interactive Object from.
+                 */
+                dragStartYGlobal: number;
                 /**
                  * The x coordinate that this Interactive Object is currently being dragged to.
                  */
@@ -52106,6 +53629,23 @@ declare namespace Phaser {
                 spritemap: object;
             };
 
+            /**
+             * A Audio Data object.
+             * 
+             * You can pass an array of these objects to the WebAudioSoundManager `decodeAudio` method to have it decode
+             * them all at once.
+             */
+            type DecodeAudioConfig = {
+                /**
+                 * The string-based key to be used to reference the decoded audio in the audio cache.
+                 */
+                key: string;
+                /**
+                 * The audio data, either a base64 encoded string, an audio media-type data uri, or an ArrayBuffer instance.
+                 */
+                data: ArrayBuffer | string;
+            };
+
             type EachActiveSoundCallback = (manager: Phaser.Sound.BaseSoundManager, sound: Phaser.Sound.BaseSound, index: number, sounds: Phaser.Sound.BaseSound[])=>void;
 
             /**
@@ -52363,6 +53903,37 @@ declare namespace Phaser {
                 tiles?: any[];
             };
 
+            type ObjectLayerConfig = {
+                /**
+                 * The name of the Object Layer.
+                 */
+                name?: string;
+                /**
+                 * The opacity of the layer, between 0 and 1.
+                 */
+                opacity?: number;
+                /**
+                 * The custom properties defined on the Object Layer, keyed by their name.
+                 */
+                properties?: any;
+                /**
+                 * The type of each custom property defined on the Object Layer, keyed by its name.
+                 */
+                propertytypes?: any;
+                /**
+                 * The type of the layer, which should be `objectgroup`.
+                 */
+                type?: string;
+                /**
+                 * Whether the layer is shown (`true`) or hidden (`false`).
+                 */
+                visible?: boolean;
+                /**
+                 * An array of all objects on this Object Layer.
+                 */
+                objects?: any[];
+            };
+
             type StyleConfig = {
                 /**
                  * Color to use for drawing a filled rectangle at non-colliding tile locations. If set to null, non-colliding tiles will not be drawn.
@@ -52376,6 +53947,85 @@ declare namespace Phaser {
                  * Color to use for drawing a line at interesting tile faces. If set to null, interesting tile faces will not be drawn.
                  */
                 faceColor?: Phaser.Display.Color | number | null;
+            };
+
+            type TiledObject = {
+                /**
+                 * The unique object ID.
+                 */
+                id: integer;
+                /**
+                 * The name this object was assigned in Tiled.
+                 */
+                name: string;
+                /**
+                 * The type, as assigned in Tiled.
+                 */
+                type: string;
+                /**
+                 * The visible state of this object.
+                 */
+                visible?: boolean;
+                /**
+                 * The horizontal position of this object, in pixels, relative to the tilemap.
+                 */
+                x?: number;
+                /**
+                 * The vertical position of this object, in pixels, relative to the tilemap.
+                 */
+                y?: number;
+                /**
+                 * The width of this object, in pixels.
+                 */
+                width?: number;
+                /**
+                 * The height of this object, in pixels.
+                 */
+                height?: number;
+                /**
+                 * The rotation of the object in clockwise degrees.
+                 */
+                rotation?: number;
+                /**
+                 * Custom properties object.
+                 */
+                properties?: any;
+                /**
+                 * Only set if of type 'tile'.
+                 */
+                gid?: integer;
+                /**
+                 * Only set if a tile object. The horizontal flip value.
+                 */
+                flippedHorizontal?: boolean;
+                /**
+                 * Only set if a tile object. The vertical flip value.
+                 */
+                flippedVertical?: boolean;
+                /**
+                 * Only set if a tile object. The diagonal flip value.
+                 */
+                flippedAntiDiagonal?: boolean;
+                /**
+                 * Only set if a polyline object. An array of objects corresponding to points, where each point has an `x` property and a `y` property.
+                 */
+                polyline?: Phaser.Types.Math.Vector2Like[];
+                /**
+                 * Only set if a polygon object. An array of objects corresponding to points, where each point has an `x` property and a `y` property.
+                 */
+                polygon?: Phaser.Types.Math.Vector2Like[];
+                /**
+                 * Only set if a text object. Contains the text objects properties.
+                 */
+                text?: any;
+                /**
+                 * Only set, and set to `true`, if a rectangle object.
+                 */
+                rectangle?: boolean;
+                /**
+                 * Only set, and set to `true`, if a ellipse object.
+                 */
+                ellipse?: boolean;
             };
 
             type TilemapConfig = {
@@ -52506,6 +54156,453 @@ declare namespace Phaser {
                 flipY?: boolean;
             };
 
+            type GetEndCallback = (target: any, key: string, value: number)=>void;
+
+            type GetStartCallback = (target: any, key: string, value: number)=>void;
+
+            type NumberTweenBuilderConfig = {
+                /**
+                 * The start number.
+                 */
+                from?: number;
+                /**
+                 * The end number.
+                 */
+                to?: number;
+                /**
+                 * The number of milliseconds to delay before the tween will start.
+                 */
+                delay?: number;
+                /**
+                 * The duration of the tween in milliseconds.
+                 */
+                duration?: number;
+                /**
+                 * The easing equation to use for the tween.
+                 */
+                ease?: string | Function;
+                /**
+                 * Optional easing parameters.
+                 */
+                easeParams?: any[];
+                /**
+                 * The number of milliseconds to hold the tween for before yoyo'ing.
+                 */
+                hold?: number;
+                /**
+                 * The number of times to repeat the tween.
+                 */
+                repeat?: number;
+                /**
+                 * The number of milliseconds to pause before a tween will repeat.
+                 */
+                repeatDelay?: number;
+                /**
+                 * Should the tween complete, then reverse the values incrementally to get back to the starting tween values? The reverse tweening will also take `duration` milliseconds to complete.
+                 */
+                yoyo?: boolean;
+                /**
+                 * Used when the Tween is part of a Timeline.
+                 */
+                offset?: number | Function | object | any[];
+                /**
+                 * The time the tween will wait before the onComplete event is dispatched once it has completed, in ms.
+                 */
+                completeDelay?: number | Function | object | any[];
+                /**
+                 * The number of times the tween will repeat. (A value of 1 means the tween will play twice, as it repeated once.) The first loop starts after every property tween has completed once.
+                 */
+                loop?: number | Function | object | any[];
+                /**
+                 * The time the tween will pause before starting either a yoyo or returning to the start for a repeat.
+                 */
+                loopDelay?: number | Function | object | any[];
+                /**
+                 * Does the tween start in a paused state (true) or playing (false)?
+                 */
+                paused?: boolean;
+                /**
+                 * Use frames or milliseconds?
+                 */
+                useFrames?: boolean;
+                /**
+                 * Scope (this) for the callbacks. The default scope is the tween.
+                 */
+                callbackScope?: any;
+                /**
+                 * A function to call when the tween completes.
+                 */
+                onComplete?: Phaser.Types.Tweens.TweenOnCompleteCallback;
+                /**
+                 * Additional parameters to pass to `onComplete`.
+                 */
+                onCompleteParams?: any[];
+                /**
+                 * Scope (this) for `onComplete`.
+                 */
+                onCompleteScope?: any;
+                /**
+                 * A function to call each time the tween loops.
+                 */
+                onLoop?: Phaser.Types.Tweens.TweenOnLoopCallback;
+                /**
+                 * Additional parameters to pass to `onLoop`.
+                 */
+                onLoopParams?: any[];
+                /**
+                 * Scope (this) for `onLoop`.
+                 */
+                onLoopScope?: any;
+                /**
+                 * A function to call each time the tween repeats. Called once per property per target.
+                 */
+                onRepeat?: Phaser.Types.Tweens.TweenOnRepeatCallback;
+                /**
+                 * Additional parameters to pass to `onRepeat`.
+                 */
+                onRepeatParams?: any[];
+                /**
+                 * Scope (this) for `onRepeat`.
+                 */
+                onRepeatScope?: any;
+                /**
+                 * A function to call when the tween starts.
+                 */
+                onStart?: Phaser.Types.Tweens.TweenOnStartCallback;
+                /**
+                 * Additional parameters to pass to `onStart`.
+                 */
+                onStartParams?: any[];
+                /**
+                 * Scope (this) for `onStart`.
+                 */
+                onStartScope?: any;
+                /**
+                 * A function to call each time the tween steps. Called once per property per target.
+                 */
+                onUpdate?: Phaser.Types.Tweens.TweenOnUpdateCallback;
+                /**
+                 * Additional parameters to pass to `onUpdate`.
+                 */
+                onUpdateParams?: any[];
+                /**
+                 * Scope (this) for `onUpdate`.
+                 */
+                onUpdateScope?: any;
+                /**
+                 * A function to call each time the tween yoyos. Called once per property per target.
+                 */
+                onYoyo?: Phaser.Types.Tweens.TweenOnYoyoCallback;
+                /**
+                 * Additional parameters to pass to `onYoyo`.
+                 */
+                onYoyoParams?: any[];
+                /**
+                 * Scope (this) for `onYoyo`.
+                 */
+                onYoyoScope?: any;
+            };
+
+            type TimelineBuilderConfig = {
+                /**
+                 * An array of tween configuration objects to create and add into the new Timeline. If this doesn't exist or is empty, the Timeline will start off paused and none of the other configuration settings will be read. If it's a function, it will be called and its return value will be used as the array.
+                 */
+                tweens?: Phaser.Types.Tweens.TweenBuilderConfig[] | object[] | Function;
+                /**
+                 * An array (or function which returns one) of default targets to which to apply the Timeline. Each individual Tween configuration can override this value.
+                 */
+                targets?: any;
+                /**
+                 * If specified, each Tween in the Timeline will get an equal portion of this duration, usually in milliseconds, by default. Each individual Tween configuration can override the Tween's duration.
+                 */
+                totalDuration?: number;
+                /**
+                 * If `totalDuration` is not specified, the default duration, usually in milliseconds, of each Tween which will be created. Each individual Tween configuration can override the Tween's duration.
+                 */
+                duration?: number;
+                /**
+                 * The number of milliseconds to delay before the tween will start. Each individual Tween configuration can override this value.
+                 */
+                delay?: number;
+                /**
+                 * Optional easing parameters. Each individual Tween configuration can override this value.
+                 */
+                easeParams?: any[];
+                /**
+                 * The easing equation to use for each tween. Each individual Tween configuration can override this value.
+                 */
+                ease?: string | Function;
+                /**
+                 * The number of milliseconds to hold each tween before yoyoing. Each individual Tween configuration can override this value.
+                 */
+                hold?: number;
+                /**
+                 * The number of times to repeat each tween. Each individual Tween configuration can override this value.
+                 */
+                repeat?: integer;
+                /**
+                 * The number of milliseconds to pause before each tween will repeat. Each individual Tween configuration can override this value.
+                 */
+                repeatDelay?: number;
+                /**
+                 * Should each tween complete, then reverse the values incrementally to get back to the starting tween values? The reverse tweening will also take `duration` milliseconds to complete. Each individual Tween configuration can override this value.
+                 */
+                yoyo?: boolean;
+                /**
+                 * Horizontally flip the target of the Tween when it completes (before it yoyos, if set to do so). Only works for targets that support the `flipX` property. Each individual Tween configuration can override this value.
+                 */
+                flipX?: boolean;
+                /**
+                 * Vertically flip the target of the Tween when it completes (before it yoyos, if set to do so). Only works for targets that support the `flipY` property. Each individual Tween configuration can override this value.
+                 */
+                flipY?: boolean;
+                /**
+                 * If specified, the time to wait, usually in milliseconds, before the Timeline completes.
+                 */
+                completeDelay?: number | Function | object | any[];
+                /**
+                 * How many times the Timeline should loop, or -1 to loop indefinitely.
+                 */
+                loop?: number | Function | object | any[];
+                /**
+                 * The time, usually in milliseconds, between each loop.
+                 */
+                loopDelay?: number | Function | object | any[];
+                /**
+                 * If `true`, the Timeline will start paused.
+                 */
+                paused?: boolean;
+                /**
+                 * If `true`, all duration in the Timeline will be in frames instead of milliseconds.
+                 */
+                useFrames?: boolean;
+                /**
+                 * The default scope (`this` value) to use for each callback registered by the Timeline Builder. If not specified, the Timeline itself will be used.
+                 */
+                callbackScope?: any;
+                /**
+                 * If specified, the `onStart` callback for the Timeline, called every time it starts playing.
+                 */
+                onStart?: Phaser.Types.Tweens.TimelineOnStartCallback;
+                /**
+                 * The scope (`this` value) to use for the `onStart` callback. If not specified, the `callbackScope` will be used.
+                 */
+                onStartScope?: any;
+                /**
+                 * Additional arguments to pass to the `onStart` callback. The Timeline will always be the first argument.
+                 */
+                onStartParams?: any[];
+                /**
+                 * If specified, the `onUpdate` callback for the Timeline, called every frame it's active, regardless of its Tweens.
+                 */
+                onUpdate?: Phaser.Types.Tweens.TimelineOnUpdateCallback;
+                /**
+                 * The scope (`this` value) to use for the `onUpdate` callback. If not specified, the `callbackScope` will be used.
+                 */
+                onUpdateScope?: any;
+                /**
+                 * Additional arguments to pass to the `onUpdate` callback. The Timeline will always be the first argument.
+                 */
+                onUpdateParams?: any[];
+                /**
+                 * If specified, the `onLoop` callback for the Timeline, called every time it loops.
+                 */
+                onLoop?: Phaser.Types.Tweens.TimelineOnLoopCallback;
+                /**
+                 * The scope (`this` value) to use for the `onLoop` callback. If not specified, the `callbackScope` will be used.
+                 */
+                onLoopScope?: any;
+                /**
+                 * Additional arguments to pass to the `onLoop` callback. The Timeline will always be the first argument.
+                 */
+                onLoopParams?: any[];
+                /**
+                 * If specified, the `onYoyo` callback for the Timeline, called every time it yoyos.
+                 */
+                onYoyo?: Phaser.Types.Tweens.TimelineOnYoyoCallback;
+                /**
+                 * The scope (`this` value) to use for the `onYoyo` callback. If not specified, the `callbackScope` will be used.
+                 */
+                onYoyoScope?: any;
+                /**
+                 * Additional arguments to pass to the `onYoyo` callback. The first argument will always be `null`, while the Timeline will always be the second argument.
+                 */
+                onYoyoParams?: any[];
+                /**
+                 * If specified, the `onComplete` callback for the Timeline, called after it completes.
+                 */
+                onComplete?: Phaser.Types.Tweens.TimelineOnCompleteCallback;
+                /**
+                 * The scope (`this` value) to use for the `onComplete` callback. If not specified, the `callbackScope` will be used.
+                 */
+                onCompleteScope?: any;
+                /**
+                 * Additional arguments to pass to the `onComplete` callback. The Timeline will always be the first argument.
+                 */
+                onCompleteParams?: any[];
+            };
+
+            type TimelineOnCompleteCallback = (timeline: Phaser.Tweens.Timeline, ...param: any[])=>void;
+
+            type TimelineOnLoopCallback = (timeline: Phaser.Tweens.Timeline, ...param: any[])=>void;
+
+            type TimelineOnStartCallback = (timeline: Phaser.Tweens.Timeline, ...param: any[])=>void;
+
+            type TimelineOnUpdateCallback = (timeline: Phaser.Tweens.Timeline, ...param: any[])=>void;
+
+            type TimelineOnYoyoCallback = (timeline: Phaser.Tweens.Timeline, ...param: any[])=>void;
+
+            type TweenBuilderConfig = {
+                /**
+                 * The object, or an array of objects, to run the tween on.
+                 */
+                targets: any;
+                /**
+                 * The number of milliseconds to delay before the tween will start.
+                 */
+                delay?: number;
+                /**
+                 * The duration of the tween in milliseconds.
+                 */
+                duration?: number;
+                /**
+                 * The easing equation to use for the tween.
+                 */
+                ease?: string | Function;
+                /**
+                 * Optional easing parameters.
+                 */
+                easeParams?: any[];
+                /**
+                 * The number of milliseconds to hold the tween for before yoyo'ing.
+                 */
+                hold?: number;
+                /**
+                 * The number of times each property tween repeats.
+                 */
+                repeat?: number;
+                /**
+                 * The number of milliseconds to pause before a repeat.
+                 */
+                repeatDelay?: number;
+                /**
+                 * Should the tween complete, then reverse the values incrementally to get back to the starting tween values? The reverse tweening will also take `duration` milliseconds to complete.
+                 */
+                yoyo?: boolean;
+                /**
+                 * Horizontally flip the target of the Tween when it completes (before it yoyos, if set to do so). Only works for targets that support the `flipX` property.
+                 */
+                flipX?: boolean;
+                /**
+                 * Vertically flip the target of the Tween when it completes (before it yoyos, if set to do so). Only works for targets that support the `flipY` property.
+                 */
+                flipY?: boolean;
+                /**
+                 * Used when the Tween is part of a Timeline.
+                 */
+                offset?: number | Function | object | any[];
+                /**
+                 * The time the tween will wait before the onComplete event is dispatched once it has completed, in ms.
+                 */
+                completeDelay?: number | Function | object | any[];
+                /**
+                 * The number of times the tween will repeat. (A value of 1 means the tween will play twice, as it repeated once.) The first loop starts after every property tween has completed once.
+                 */
+                loop?: number | Function | object | any[];
+                /**
+                 * The time the tween will pause before starting either a yoyo or returning to the start for a repeat.
+                 */
+                loopDelay?: number | Function | object | any[];
+                /**
+                 * Does the tween start in a paused state (true) or playing (false)?
+                 */
+                paused?: boolean;
+                /**
+                 * The properties to tween.
+                 */
+                props?: {[key: string]:  (number|string|Phaser.Types.Tweens.GetEndCallback|Phaser.Types.Tweens.TweenPropConfig)};
+                /**
+                 * Use frames or milliseconds?
+                 */
+                useFrames?: boolean;
+                /**
+                 * Scope (this) for the callbacks. The default scope is the tween.
+                 */
+                callbackScope?: any;
+                /**
+                 * A function to call when the tween completes.
+                 */
+                onComplete?: Phaser.Types.Tweens.TweenOnCompleteCallback;
+                /**
+                 * Additional parameters to pass to `onComplete`.
+                 */
+                onCompleteParams?: any[];
+                /**
+                 * Scope (this) for `onComplete`.
+                 */
+                onCompleteScope?: any;
+                /**
+                 * A function to call each time the tween loops.
+                 */
+                onLoop?: Phaser.Types.Tweens.TweenOnLoopCallback;
+                /**
+                 * Additional parameters to pass to `onLoop`.
+                 */
+                onLoopParams?: any[];
+                /**
+                 * Scope (this) for `onLoop`.
+                 */
+                onLoopScope?: any;
+                /**
+                 * A function to call each time the tween repeats. Called once per property per target.
+                 */
+                onRepeat?: Phaser.Types.Tweens.TweenOnRepeatCallback;
+                /**
+                 * Additional parameters to pass to `onRepeat`.
+                 */
+                onRepeatParams?: any[];
+                /**
+                 * Scope (this) for `onRepeat`.
+                 */
+                onRepeatScope?: any;
+                /**
+                 * A function to call when the tween starts.
+                 */
+                onStart?: Phaser.Types.Tweens.TweenOnStartCallback;
+                /**
+                 * Additional parameters to pass to `onStart`.
+                 */
+                onStartParams?: any[];
+                /**
+                 * Scope (this) for `onStart`.
+                 */
+                onStartScope?: any;
+                /**
+                 * A function to call each time the tween steps. Called once per property per target.
+                 */
+                onUpdate?: Phaser.Types.Tweens.TweenOnUpdateCallback;
+                /**
+                 * Additional parameters to pass to `onUpdate`.
+                 */
+                onUpdateParams?: any[];
+                /**
+                 * Scope (this) for `onUpdate`.
+                 */
+                onUpdateScope?: any;
+                /**
+                 * A function to call each time the tween yoyos. Called once per property per target.
+                 */
+                onYoyo?: Phaser.Types.Tweens.TweenOnYoyoCallback;
+                /**
+                 * Additional parameters to pass to `onYoyo`.
+                 */
+                onYoyoParams?: any[];
+                /**
+                 * Scope (this) for `onYoyo`.
+                 */
+                onYoyoScope?: any;
+            };
+
             type TweenDataConfig = {
                 /**
                  * The target to tween.
@@ -52626,6 +54723,69 @@ declare namespace Phaser {
                  * Time in ms/frames before the repeat will start.
                  */
                 repeatDelay: Function;
+            };
+
+            type TweenOnCompleteCallback = (tween: Phaser.Tweens.Tween, targets: any[], ...param: any[])=>void;
+
+            type TweenOnLoopCallback = (tween: Phaser.Tweens.Tween, targets: any[], ...param: any[])=>void;
+
+            type TweenOnRepeatCallback = (tween: Phaser.Tweens.Tween, target: any, ...param: any[])=>void;
+
+            type TweenOnStartCallback = (tween: Phaser.Tweens.Tween, targets: any[], ...param: any[])=>void;
+
+            type TweenOnUpdateCallback = (tween: Phaser.Tweens.Tween, target: any, ...param: any[])=>void;
+
+            type TweenOnYoyoCallback = (tween: Phaser.Tweens.Tween, target: any, ...param: any[])=>void;
+
+            type TweenPropConfig = {
+                /**
+                 * What the property will be at the END of the Tween.
+                 */
+                value?: number | string | Phaser.Types.Tweens.GetEndCallback | Phaser.Types.Tweens.TweenPropConfig;
+                /**
+                 * What the property will be at the END of the Tween.
+                 */
+                getEnd?: Phaser.Types.Tweens.GetEndCallback;
+                /**
+                 * What the property will be at the START of the Tween.
+                 */
+                getStart?: Phaser.Types.Tweens.GetStartCallback;
+                /**
+                 * The ease function this tween uses.
+                 */
+                ease?: string | Function;
+                /**
+                 * Time in ms/frames before tween will start.
+                 */
+                delay?: number;
+                /**
+                 * Duration of the tween in ms/frames.
+                 */
+                duration?: number;
+                /**
+                 * Determines whether the tween should return back to its start value after hold has expired.
+                 */
+                yoyo?: boolean;
+                /**
+                 * Time in ms/frames the tween will pause before repeating or returning to its starting value if yoyo is set to true.
+                 */
+                hold?: number;
+                /**
+                 * Number of times to repeat the tween. The tween will always run once regardless, so a repeat value of '1' will play the tween twice.
+                 */
+                repeat?: number;
+                /**
+                 * Time in ms/frames before the repeat will start.
+                 */
+                repeatDelay?: number;
+                /**
+                 * Should toggleFlipX be called when yoyo or repeat happens?
+                 */
+                flipX?: boolean;
+                /**
+                 * Should toggleFlipY be called when yoyo or repeat happens?
+                 */
+                flipY?: boolean;
             };
 
         }
@@ -52783,20 +54943,28 @@ declare namespace Phaser {
 
                 /**
                  * The horizontally flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipX: boolean;
 
                 /**
                  * The vertically flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipY: boolean;
 
                 /**
                  * Toggles the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 toggleFlipX(): this;
 
@@ -52807,6 +54975,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param value The flipped state. `false` for no flip, or `true` to be flipped.
                  */
                 setFlipX(value: boolean): this;
@@ -52819,6 +54991,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal and vertical flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped will render inversed on the flipped axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  */
@@ -52845,6 +55021,14 @@ declare namespace Phaser {
                 getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the top-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the top-right corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -52853,12 +55037,36 @@ declare namespace Phaser {
                 getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the left-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the right-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
                  * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
                  */
                 getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
                  * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -53340,6 +55548,15 @@ declare namespace Phaser {
                 w: number;
 
                 /**
+                 * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+                 * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+                 * 
+                 * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+                 * isn't the case, use the `scaleX` or `scaleY` properties instead.
+                 */
+                scale: number;
+
+                /**
                  * The horizontal scale of this Game Object.
                  */
                 scaleX: number;
@@ -53444,6 +55661,13 @@ declare namespace Phaser {
                  * @param parentMatrix A temporary matrix to hold parent values during the calculations.
                  */
                 getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+                /**
+                 * Gets the sum total rotation of all of this Game Objects parent Containers.
+                 * 
+                 * The returned value is in radians and will be zero if this Game Object has no parent container.
+                 */
+                getParentRotation(): number;
 
                 /**
                  * The visible state of the Game Object.
@@ -54177,20 +56401,28 @@ declare namespace Phaser {
 
                 /**
                  * The horizontally flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipX: boolean;
 
                 /**
                  * The vertically flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipY: boolean;
 
                 /**
                  * Toggles the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 toggleFlipX(): this;
 
@@ -54201,6 +56433,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param value The flipped state. `false` for no flip, or `true` to be flipped.
                  */
                 setFlipX(value: boolean): this;
@@ -54213,6 +56449,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal and vertical flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped will render inversed on the flipped axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  */
@@ -54239,6 +56479,14 @@ declare namespace Phaser {
                 getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the top-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the top-right corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -54247,12 +56495,36 @@ declare namespace Phaser {
                 getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the left-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the right-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
                  * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
                  */
                 getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
                  * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -54734,6 +57006,15 @@ declare namespace Phaser {
                 w: number;
 
                 /**
+                 * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+                 * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+                 * 
+                 * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+                 * isn't the case, use the `scaleX` or `scaleY` properties instead.
+                 */
+                scale: number;
+
+                /**
                  * The horizontal scale of this Game Object.
                  */
                 scaleX: number;
@@ -54838,6 +57119,13 @@ declare namespace Phaser {
                  * @param parentMatrix A temporary matrix to hold parent values during the calculations.
                  */
                 getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+                /**
+                 * Gets the sum total rotation of all of this Game Objects parent Containers.
+                 * 
+                 * The returned value is in radians and will be zero if this Game Object has no parent container.
+                 */
+                getParentRotation(): number;
 
                 /**
                  * The visible state of the Game Object.
@@ -55428,7 +57716,7 @@ declare namespace Phaser {
                 mass: number;
 
                 /**
-                 * The calculated angle of this Body's velocity vector, in degrees, during the last step.
+                 * The calculated angle of this Body's velocity vector, in radians, during the last step.
                  */
                 angle: number;
 
@@ -55533,18 +57821,25 @@ declare namespace Phaser {
                 updateCenter(): void;
 
                 /**
-                 * Prepares the Body for a physics step by resetting all the states and syncing the position
-                 * with the parent Game Object.
+                 * Prepares the Body for a physics step by resetting the `wasTouching`, `touching` and `blocked` states.
                  * 
-                 * This method is only ever called once per game step.
+                 * This method is only called if the physics world is going to run a step this frame.
                  */
-                preUpdate(): void;
+                resetFlags(): void;
 
                 /**
-                 * Performs a single physics step and updates the body velocity, angle, speed and other
-                 * properties.
+                 * Syncs the position body position with the parent Game Object.
                  * 
-                 * This method can be called multiple times per game step.
+                 * This method is called every game frame, regardless if the world steps or not.
+                 * @param willStep Will this Body run an update as well?
+                 * @param delta The delta time, in seconds, elapsed since the last frame.
+                 */
+                preUpdate(willStep: boolean, delta: number): void;
+
+                /**
+                 * Performs a single physics step and updates the body velocity, angle, speed and other properties.
+                 * 
+                 * This method can be called multiple times per game frame, depending on the physics step rate.
                  * 
                  * The results are synced back to the Game Object in `postUpdate`.
                  * @param delta The delta time, in seconds, elapsed since the last frame.
@@ -55554,7 +57849,7 @@ declare namespace Phaser {
                 /**
                  * Feeds the Body results back into the parent Game Object.
                  * 
-                 * This method is only ever called once per game step.
+                 * This method is called every game frame, regardless if the world steps or not.
                  */
                 postUpdate(): void;
 
@@ -56474,6 +58769,18 @@ declare namespace Phaser {
                  */
                 const WORLD_BOUNDS: any;
 
+                /**
+                 * The Arcade Physics World Step Event.
+                 * 
+                 * This event is dispatched by an Arcade Physics World instance whenever a physics step is run.
+                 * It is emitted _after_ the bodies and colliders have been updated.
+                 * 
+                 * In high framerate settings this can be multiple times per game frame.
+                 * 
+                 * Listen to it from a Scene using: `this.physics.world.on('worldstep', listener)`.
+                 */
+                const WORLD_STEP: any;
+
             }
 
             /**
@@ -56635,7 +58942,7 @@ declare namespace Phaser {
                  * 
                  * This should be either `Phaser.Physics.Arcade.Image`, `Phaser.Physics.Arcade.Sprite`, or a class extending one of those.
                  */
-                classType: Phaser.Types.GameObjects.Group.GroupClassTypeConstructor;
+                classType: Function;
 
                 /**
                  * The physics type of the Group's members.
@@ -56939,10 +59246,9 @@ declare namespace Phaser {
                  * Resets the width and height to match current frame, if no width and height provided and a frame is found.
                  * @param width The width of the Body in pixels. Cannot be zero. If not given, and the parent Game Object has a frame, it will use the frame width.
                  * @param height The height of the Body in pixels. Cannot be zero. If not given, and the parent Game Object has a frame, it will use the frame height.
-                 * @param offsetX The horizontal offset of the Body from the Game Object's center.
-                 * @param offsetY The vertical offset of the Body from the Game Object's center.
+                 * @param center Modify the Body's `offset`, placing the Body's center on its Game Object's center. Only works if the Game Object has the `getCenter` method. Default true.
                  */
-                setSize(width?: integer, height?: integer, offsetX?: number, offsetY?: number): Phaser.Physics.Arcade.StaticBody;
+                setSize(width?: integer, height?: integer, center?: boolean): Phaser.Physics.Arcade.StaticBody;
 
                 /**
                  * Sets this Static Body to have a circular body and sets its sizes and position.
@@ -59000,20 +61306,28 @@ declare namespace Phaser {
 
                 /**
                  * The horizontally flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipX: boolean;
 
                 /**
                  * The vertically flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipY: boolean;
 
                 /**
                  * Toggles the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 toggleFlipX(): this;
 
@@ -59024,6 +61338,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param value The flipped state. `false` for no flip, or `true` to be flipped.
                  */
                 setFlipX(value: boolean): this;
@@ -59036,6 +61354,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal and vertical flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped will render inversed on the flipped axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  */
@@ -59062,6 +61384,14 @@ declare namespace Phaser {
                 getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the top-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the top-right corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -59070,12 +61400,36 @@ declare namespace Phaser {
                 getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the left-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the right-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
                  * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
                  */
                 getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
                  * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -59557,6 +61911,15 @@ declare namespace Phaser {
                 w: number;
 
                 /**
+                 * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+                 * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+                 * 
+                 * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+                 * isn't the case, use the `scaleX` or `scaleY` properties instead.
+                 */
+                scale: number;
+
+                /**
                  * The horizontal scale of this Game Object.
                  */
                 scaleX: number;
@@ -59661,6 +62024,13 @@ declare namespace Phaser {
                  * @param parentMatrix A temporary matrix to hold parent values during the calculations.
                  */
                 getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+                /**
+                 * Gets the sum total rotation of all of this Game Objects parent Containers.
+                 * 
+                 * The returned value is in radians and will be zero if this Game Object has no parent container.
+                 */
+                getParentRotation(): number;
 
                 /**
                  * The visible state of the Game Object.
@@ -60159,20 +62529,28 @@ declare namespace Phaser {
 
                 /**
                  * The horizontally flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipX: boolean;
 
                 /**
                  * The vertically flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipY: boolean;
 
                 /**
                  * Toggles the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 toggleFlipX(): this;
 
@@ -60183,6 +62561,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param value The flipped state. `false` for no flip, or `true` to be flipped.
                  */
                 setFlipX(value: boolean): this;
@@ -60195,6 +62577,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal and vertical flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped will render inversed on the flipped axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  */
@@ -60221,6 +62607,14 @@ declare namespace Phaser {
                 getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the top-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the top-right corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -60229,12 +62623,36 @@ declare namespace Phaser {
                 getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the left-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the right-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
                  * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
                  */
                 getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
                  * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -60716,6 +63134,15 @@ declare namespace Phaser {
                 w: number;
 
                 /**
+                 * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+                 * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+                 * 
+                 * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+                 * isn't the case, use the `scaleX` or `scaleY` properties instead.
+                 */
+                scale: number;
+
+                /**
                  * The horizontal scale of this Game Object.
                  */
                 scaleX: number;
@@ -60820,6 +63247,13 @@ declare namespace Phaser {
                  * @param parentMatrix A temporary matrix to hold parent values during the calculations.
                  */
                 getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+                /**
+                 * Gets the sum total rotation of all of this Game Objects parent Containers.
+                 * 
+                 * The returned value is in radians and will be zero if this Game Object has no parent container.
+                 */
+                getParentRotation(): number;
 
                 /**
                  * The visible state of the Game Object.
@@ -62036,11 +64470,11 @@ declare namespace Phaser {
                  * @param y The Y coordinate of the center of the Body.
                  * @param vertexSets [description]
                  * @param options [description]
-                 * @param flagInternal Flag internal edges (coincident part edges)
-                 * @param removeCollinear Whether Matter.js will discard collinear edges (to improve performance).
-                 * @param minimumArea During decomposition discard parts that have an area less than this
+                 * @param flagInternal Flag internal edges (coincident part edges) Default false.
+                 * @param removeCollinear Whether Matter.js will discard collinear edges (to improve performance). Default 0.01.
+                 * @param minimumArea During decomposition discard parts that have an area less than this. Default 10.
                  */
-                fromVertices(x: number, y: number, vertexSets: any[], options: object, flagInternal: boolean, removeCollinear: boolean, minimumArea: number): MatterJS.Body;
+                fromVertices(x: number, y: number, vertexSets: string | any[], options?: object, flagInternal?: boolean, removeCollinear?: number, minimumArea?: number): MatterJS.Body;
 
                 /**
                  * Create a new composite containing Matter Image objects created in a grid arrangement.
@@ -62167,7 +64601,7 @@ declare namespace Phaser {
                  * @param stiffness [description] Default 1.
                  * @param options [description] Default {}.
                  */
-                constraint(bodyA: MatterJS.Body, bodyB: MatterJS.Body, length: number, stiffness?: number, options?: object): MatterJS.Constraint;
+                constraint(bodyA: MatterJS.Body, bodyB: MatterJS.Body, length?: number, stiffness?: number, options?: object): MatterJS.Constraint;
 
                 /**
                  * [description]
@@ -62220,9 +64654,35 @@ declare namespace Phaser {
                 /**
                  * [description]
                  * @param gameObject The Game Object to inject the Matter Body in to.
-                 * @param options [description]
+                 * @param options A Matter Body configuration object, or an instance of a Matter Body.
                  */
-                gameObject(gameObject: Phaser.GameObjects.GameObject, options: object): Phaser.GameObjects.GameObject;
+                gameObject(gameObject: Phaser.GameObjects.GameObject, options: object | MatterJS.Body): Phaser.GameObjects.GameObject;
+
+                /**
+                 * Instantly sets the linear velocity of the given body. Position, angle, force etc. are unchanged.
+                 * 
+                 * See also `force`.
+                 * @param body The Matter Body to set the velocity on.
+                 * @param velocity The velocity to set. An object with public `x` and `y` components.
+                 */
+                velocity(body: MatterJS.Body, velocity: Phaser.Types.Math.Vector2Like): MatterJS.Body;
+
+                /**
+                 * Instantly sets the angular velocity of the given body. Position, angle, force etc. are unchanged.
+                 * 
+                 * See also `force`.
+                 * @param body The Matter Body to set the velocity on.
+                 * @param velocity The angular velocity to set.
+                 */
+                angularVelocity(body: MatterJS.Body, velocity: number): MatterJS.Body;
+
+                /**
+                 * Applies a force to a body from a given world-space position, including resulting torque.
+                 * @param body The Matter Body to set the force on.
+                 * @param position The world position to apply the force from. An object with public `x` and `y` components.
+                 * @param force The force to set. An object with public `x` and `y` components.
+                 */
+                force(body: MatterJS.Body, position: Phaser.Types.Math.Vector2Like, force: Phaser.Types.Math.Vector2Like): MatterJS.Body;
 
                 /**
                  * Destroys this Factory.
@@ -62235,9 +64695,9 @@ declare namespace Phaser {
              * [description]
              * @param world The Matter world to add the body to.
              * @param gameObject The Game Object that will have the Matter body applied to it.
-             * @param options Matter options config object.
+             * @param options A Matter Body configuration object, or an instance of a Matter Body.
              */
-            function MatterGameObject(world: Phaser.Physics.Matter.World, gameObject: Phaser.GameObjects.GameObject, options: object): Phaser.GameObjects.GameObject;
+            function MatterGameObject(world: Phaser.Physics.Matter.World, gameObject: Phaser.GameObjects.GameObject, options: object | MatterJS.Body): Phaser.GameObjects.GameObject;
 
             /**
              * A Matter Physics Image Game Object.
@@ -62391,20 +64851,28 @@ declare namespace Phaser {
 
                 /**
                  * The horizontally flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipX: boolean;
 
                 /**
                  * The vertically flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipY: boolean;
 
                 /**
                  * Toggles the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 toggleFlipX(): this;
 
@@ -62415,6 +64883,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param value The flipped state. `false` for no flip, or `true` to be flipped.
                  */
                 setFlipX(value: boolean): this;
@@ -62427,6 +64899,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal and vertical flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped will render inversed on the flipped axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  */
@@ -62453,6 +64929,14 @@ declare namespace Phaser {
                 getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the top-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the top-right corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -62461,12 +64945,36 @@ declare namespace Phaser {
                 getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the left-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the right-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
                  * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
                  */
                 getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
                  * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -62948,6 +65456,15 @@ declare namespace Phaser {
                 w: number;
 
                 /**
+                 * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+                 * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+                 * 
+                 * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+                 * isn't the case, use the `scaleX` or `scaleY` properties instead.
+                 */
+                scale: number;
+
+                /**
                  * The horizontal scale of this Game Object.
                  */
                 scaleX: number;
@@ -63052,6 +65569,13 @@ declare namespace Phaser {
                  * @param parentMatrix A temporary matrix to hold parent values during the calculations.
                  */
                 getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+                /**
+                 * Gets the sum total rotation of all of this Game Objects parent Containers.
+                 * 
+                 * The returned value is in radians and will be zero if this Game Object has no parent container.
+                 */
+                getParentRotation(): number;
 
                 /**
                  * The visible state of the Game Object.
@@ -63340,6 +65864,16 @@ declare namespace Phaser {
                 verts: MatterJS.Vertices;
 
                 /**
+                 * A reference to the `Matter.Body` module which contains methods for creating and manipulating body models.
+                 */
+                body: MatterJS.Body;
+
+                /**
+                 * A reference to the `Matter.Bodies` module which contains methods for creating bodies.
+                 */
+                bodies: MatterJS.Bodies;
+
+                /**
                  * [description]
                  */
                 getConfig(): object;
@@ -63558,20 +66092,28 @@ declare namespace Phaser {
 
                 /**
                  * The horizontally flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipX: boolean;
 
                 /**
                  * The vertically flipped state of the Game Object.
+                 * 
                  * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
                  * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 flipY: boolean;
 
                 /**
                  * Toggles the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  */
                 toggleFlipX(): this;
 
@@ -63582,6 +66124,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param value The flipped state. `false` for no flip, or `true` to be flipped.
                  */
                 setFlipX(value: boolean): this;
@@ -63594,6 +66140,10 @@ declare namespace Phaser {
 
                 /**
                  * Sets the horizontal and vertical flipped state of this Game Object.
+                 * 
+                 * A Game Object that is flipped will render inversed on the flipped axis.
+                 * Flipping always takes place from the middle of the texture and does not impact the scale value.
+                 * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
                  * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
                  */
@@ -63620,6 +66170,14 @@ declare namespace Phaser {
                 getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the top-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the top-right corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -63628,12 +66186,36 @@ declare namespace Phaser {
                 getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
+                 * Gets the left-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the right-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
                  * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
                  * The returned point is calculated in local space and does not factor in any parent containers
                  * @param output An object to store the values in. If not provided a new Vector2 will be created.
                  * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
                  */
                 getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+                /**
+                 * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+                 * The returned point is calculated in local space and does not factor in any parent containers
+                 * @param output An object to store the values in. If not provided a new Vector2 will be created.
+                 * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+                 */
+                getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
                 /**
                  * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -64115,6 +66697,15 @@ declare namespace Phaser {
                 w: number;
 
                 /**
+                 * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+                 * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+                 * 
+                 * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+                 * isn't the case, use the `scaleX` or `scaleY` properties instead.
+                 */
+                scale: number;
+
+                /**
                  * The horizontal scale of this Game Object.
                  */
                 scaleX: number;
@@ -64219,6 +66810,13 @@ declare namespace Phaser {
                  * @param parentMatrix A temporary matrix to hold parent values during the calculations.
                  */
                 getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+                /**
+                 * Gets the sum total rotation of all of this Game Objects parent Containers.
+                 * 
+                 * The returned value is in radians and will be zero if this Game Object has no parent container.
+                 */
+                getParentRotation(): number;
 
                 /**
                  * The visible state of the Game Object.
@@ -68269,6 +70867,10 @@ declare namespace Phaser {
 
             /**
              * This method will set a new size for your game.
+             * 
+             * It should only be used if you're looking to change the base size of your game and are using
+             * one of the Scale Manager scaling modes, i.e. `FIT`. If you're using `NO_SCALE` and wish to
+             * change the game and canvas size directly, then please use the `resize` method instead.
              * @param width The new width of the game.
              * @param height The new height of the game.
              */
@@ -68282,7 +70884,7 @@ declare namespace Phaser {
              * If all you want to do is change the size of the parent, see the `setParentSize` method.
              * 
              * If all you want is to change the base size of the game, but still have the Scale Manager
-             * manage all the scaling, then see the `setGameSize` method.
+             * manage all the scaling (i.e. you're **not** using `NO_SCALE`), then see the `setGameSize` method.
              * 
              * This method will set the `gameSize`, `baseSize` and `displaySize` components to the given
              * dimensions. It will then resize the canvas width and height to the values given, by
@@ -68316,8 +70918,10 @@ declare namespace Phaser {
              * 
              * This is called automatically by the Scale Manager when the browser window size changes,
              * as long as it is using a Scale Mode other than 'NONE'.
+             * @param previousWidth The previous width of the game. Only set if the gameSize has changed.
+             * @param previousHeight The previous height of the game. Only set if the gameSize has changed.
              */
-            refresh(): this;
+            refresh(previousWidth?: number, previousHeight?: number): this;
 
             /**
              * Internal method that checks the current screen orientation, only if the internal check flag is set.
@@ -70319,6 +72923,38 @@ declare namespace Phaser {
             const COMPLETE: any;
 
             /**
+             * The Audio Data Decoded All Event.
+             * 
+             * This event is dispatched by the Web Audio Sound Manager as a result of calling the `decodeAudio` method,
+             * once all files passed to the method have been decoded (or errored).
+             * 
+             * Use `Phaser.Sound.Events#DECODED` to listen for single sounds being decoded, and `DECODED_ALL` to
+             * listen for them all completing.
+             * 
+             * Listen to it from the Sound Manager in a Scene using `this.sound.on('decodedall', listener)`, i.e.:
+             * 
+             * ```javascript
+             * this.sound.once('decodedall', handler);
+             * this.sound.decodeAudio([ audioFiles ]);
+             * ```
+             */
+            const DECODED_ALL: any;
+
+            /**
+             * The Audio Data Decoded Event.
+             * 
+             * This event is dispatched by the Web Audio Sound Manager as a result of calling the `decodeAudio` method.
+             * 
+             * Listen to it from the Sound Manager in a Scene using `this.sound.on('decoded', listener)`, i.e.:
+             * 
+             * ```javascript
+             * this.sound.on('decoded', handler);
+             * this.sound.decodeAudio(key, audioData);
+             * ```
+             */
+            const DECODED: any;
+
+            /**
              * The Sound Destroy Event.
              * 
              * This event is dispatched by both Web Audio and HTML5 Audio Sound objects when they are destroyed, either
@@ -71030,6 +73666,24 @@ declare namespace Phaser {
              * @param config An optional config object containing default sound settings.
              */
             add(key: string, config?: Phaser.Types.Sound.SoundConfig): Phaser.Sound.WebAudioSound;
+
+            /**
+             * Decode audio data into a format ready for playback via Web Audio.
+             * 
+             * The audio data can be a base64 encoded string, an audio media-type data uri, or an ArrayBuffer instance.
+             * 
+             * The `audioKey` is the key that will be used to save the decoded audio to the audio cache.
+             * 
+             * Instead of passing a single entry you can instead pass an array of `Phaser.Types.Sound.DecodeAudioConfig`
+             * objects as the first and only argument.
+             * 
+             * Decoding is an async process, so be sure to listen for the events to know when decoding has completed.
+             * 
+             * Once the audio has decoded it can be added to the Sound Manager or played via its key.
+             * @param audioKey The string-based key to be used to reference the decoded audio in the audio cache, or an array of audio config objects.
+             * @param audioData The audio data, either a base64 encoded string, an audio media-type data uri, or an ArrayBuffer instance.
+             */
+            decodeAudio(audioKey?: Phaser.Types.Sound.DecodeAudioConfig[] | string, audioData?: ArrayBuffer | string): void;
 
             /**
              * Unlocks Web Audio API on the initial input event.
@@ -73910,20 +76564,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -73934,6 +76596,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -73946,6 +76612,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -73972,6 +76642,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -73980,12 +76658,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -74174,6 +76876,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -74278,6 +76989,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -74646,7 +77364,7 @@ declare namespace Phaser {
              * 
              * @param config The data for the layer from the Tiled JSON object.
              */
-            constructor(config?: object);
+            constructor(config?: Phaser.Types.Tilemaps.ObjectLayerConfig);
 
             /**
              * The name of the Object Layer.
@@ -74681,15 +77399,23 @@ declare namespace Phaser {
             /**
              * An array of all objects on this Object Layer.
              * 
-             * Each Tiled object corresponds to a JavaScript object in this array. It has an `id` (unique), `name` (as assigned in Tiled), `type` (as assigned in Tiled), `rotation` (in clockwise degrees), `properties` (if any), `visible` state (`true` if visible, `false` otherwise), `x` and `y` coordinates (in pixels, relative to the tilemap), and a `width` and `height` (in pixels).
+             * Each Tiled object corresponds to a JavaScript object in this array. It has an `id` (unique),
+             * `name` (as assigned in Tiled), `type` (as assigned in Tiled), `rotation` (in clockwise degrees),
+             * `properties` (if any), `visible` state (`true` if visible, `false` otherwise),
+             * `x` and `y` coordinates (in pixels, relative to the tilemap), and a `width` and `height` (in pixels).
              * 
-             * An object tile has a `gid` property (GID of the represented tile), a `flippedHorizontal` property, a `flippedVertical` property, and `flippedAntiDiagonal` property. The {@link http://docs.mapeditor.org/en/latest/reference/tmx-map-format/|Tiled documentation} contains information on flipping and rotation.
+             * An object tile has a `gid` property (GID of the represented tile), a `flippedHorizontal` property,
+             * a `flippedVertical` property, and `flippedAntiDiagonal` property.
+             * The {@link http://docs.mapeditor.org/en/latest/reference/tmx-map-format/|Tiled documentation} contains
+             * information on flipping and rotation.
              * 
-             * Polylines have a `polyline` property, which is an array of objects corresponding to points, where each point has an `x` property and a `y` property. Polygons have an identically structured array in their `polygon` property. Text objects have a `text` property with the text's properties.
+             * Polylines have a `polyline` property, which is an array of objects corresponding to points,
+             * where each point has an `x` property and a `y` property. Polygons have an identically structured
+             * array in their `polygon` property. Text objects have a `text` property with the text's properties.
              * 
              * Rectangles and ellipses have a `rectangle` or `ellipse` property set to `true`.
              */
-            objects: Phaser.GameObjects.GameObject[];
+            objects: Phaser.Types.Tilemaps.TiledObject[];
 
         }
 
@@ -74841,17 +77567,10 @@ declare namespace Phaser {
                 function ParseTileLayers(json: object, insertNull: boolean): any[];
 
                 /**
-                 * Tilesets & Image Collections
+                 * Tilesets and Image Collections
                  * @param json [description]
                  */
                 function ParseTilesets(json: object): object;
-
-                /**
-                 * Returns a new object that only contains the `keys` that were found on the object provided. If no `keys` are found, an empty object is returned.
-                 * @param object The object to pick the provided keys from.
-                 * @param keys An array of properties to retrieve from the provided object.
-                 */
-                function Pick(object: object, keys: any[]): object;
 
             }
 
@@ -75575,20 +78294,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -75599,6 +78326,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -75611,6 +78342,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -75637,6 +78372,14 @@ declare namespace Phaser {
             getTopLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the top-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getTopCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the top-right corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
@@ -75645,12 +78388,36 @@ declare namespace Phaser {
             getTopRight<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
+             * Gets the left-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getLeftCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the right-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getRightCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
              * Gets the bottom-left corner coordinate of this Game Object, regardless of origin.
              * The returned point is calculated in local space and does not factor in any parent containers
              * @param output An object to store the values in. If not provided a new Vector2 will be created.
              * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
              */
             getBottomLeft<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
+
+            /**
+             * Gets the bottom-center coordinate of this Game Object, regardless of origin.
+             * The returned point is calculated in local space and does not factor in any parent containers
+             * @param output An object to store the values in. If not provided a new Vector2 will be created.
+             * @param includeParent If this Game Object has a parent Container, include it (and all other ancestors) in the resulting vector? Default false.
+             */
+            getBottomCenter<O extends Phaser.Math.Vector2>(output?: O, includeParent?: boolean): O;
 
             /**
              * Gets the bottom-right corner coordinate of this Game Object, regardless of origin.
@@ -75780,6 +78547,15 @@ declare namespace Phaser {
             w: number;
 
             /**
+             * This is a special setter that allows you to set both the horizontal and vertical scale of this Game Object
+             * to the same value, at the same time. When reading this value the result returned is `(scaleX + scaleY) / 2`.
+             * 
+             * Use of this property implies you wish the horizontal and vertical scales to be equal to each other. If this
+             * isn't the case, use the `scaleX` or `scaleY` properties instead.
+             */
+            scale: number;
+
+            /**
              * The horizontal scale of this Game Object.
              */
             scaleX: number;
@@ -75884,6 +78660,13 @@ declare namespace Phaser {
              * @param parentMatrix A temporary matrix to hold parent values during the calculations.
              */
             getWorldTransformMatrix(tempMatrix?: Phaser.GameObjects.Components.TransformMatrix, parentMatrix?: Phaser.GameObjects.Components.TransformMatrix): Phaser.GameObjects.Components.TransformMatrix;
+
+            /**
+             * Gets the sum total rotation of all of this Game Objects parent Containers.
+             * 
+             * The returned value is in radians and will be zero if this Game Object has no parent container.
+             */
+            getParentRotation(): number;
 
             /**
              * The visible state of the Game Object.
@@ -76346,20 +79129,28 @@ declare namespace Phaser {
 
             /**
              * The horizontally flipped state of the Game Object.
+             * 
              * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipX: boolean;
 
             /**
              * The vertically flipped state of the Game Object.
+             * 
              * A Game Object that is flipped vertically will render inversed on the vertical axis (i.e. upside down)
              * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             flipY: boolean;
 
             /**
              * Toggles the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              */
             toggleFlipX(): this;
 
@@ -76370,6 +79161,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped horizontally will render inversed on the horizontal axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param value The flipped state. `false` for no flip, or `true` to be flipped.
              */
             setFlipX(value: boolean): this;
@@ -76382,6 +79177,10 @@ declare namespace Phaser {
 
             /**
              * Sets the horizontal and vertical flipped state of this Game Object.
+             * 
+             * A Game Object that is flipped will render inversed on the flipped axis.
+             * Flipping always takes place from the middle of the texture and does not impact the scale value.
+             * If this Game Object has a physics body, it will not change the body. This is a rendering toggle only.
              * @param x The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              * @param y The horizontal flipped state. `false` for no flip, or `true` to be flipped.
              */
@@ -76629,10 +79428,10 @@ declare namespace Phaser {
              * information.
              * @param layerID The layer array index value, or if a string is given, the layer name from Tiled.
              * @param tileset The tileset, or an array of tilesets, used to render this layer. Can be a string or a Tileset object.
-             * @param x The x position to place the layer in the world. If not specified, it will default to the layer offset from Tiled or 0.
-             * @param y The y position to place the layer in the world. If not specified, it will default to the layer offset from Tiled or 0.
+             * @param x The x position to place the layer in the world. If not specified, it will default to the layer offset from Tiled or 0. Default 0.
+             * @param y The y position to place the layer in the world. If not specified, it will default to the layer offset from Tiled or 0. Default 0.
              */
-            createDynamicLayer(layerID: integer | string, tileset: string | string[] | Phaser.Tilemaps.Tileset | Phaser.Tilemaps.Tileset[], x: number, y: number): Phaser.Tilemaps.DynamicTilemapLayer;
+            createDynamicLayer(layerID: integer | string, tileset: string | string[] | Phaser.Tilemaps.Tileset | Phaser.Tilemaps.Tileset[], x?: number, y?: number): Phaser.Tilemaps.DynamicTilemapLayer;
 
             /**
              * Creates a Sprite for every object matching the given gid in the map data. All properties from
@@ -76990,7 +79789,7 @@ declare namespace Phaser {
 
             /**
              * Randomizes the indexes of a rectangular region of tiles (in tile coordinates) within the
-             * specified layer. Each tile will recieve a new index. If an array of indexes is passed in, then
+             * specified layer. Each tile will receive a new index. If an array of indexes is passed in, then
              * those will be used for randomly assigning new tile indexes. If an array is not provided, the
              * indexes found within the region (excluding -1) will be used for randomly assigning new tile
              * indexes. This method only modifies tile indexes and does not change collision information.
@@ -77830,57 +80629,27 @@ declare namespace Phaser {
             function GetValueOp(key: string, propertyValue: any): Function;
 
             /**
-             * [description]
-             * @param parent [description]
-             * @param config [description]
-             * @param defaults [description]
+             * Creates a new Number Tween.
+             * @param parent The owner of the new Tween.
+             * @param config Configuration for the new Tween.
+             * @param defaults Tween configuration defaults.
              */
-            function NumberTweenBuilder(parent: Phaser.Tweens.TweenManager | Phaser.Tweens.Timeline, config: object, defaults: Phaser.Types.Tweens.TweenConfigDefaults): Phaser.Tweens.Tween;
+            function NumberTweenBuilder(parent: Phaser.Tweens.TweenManager | Phaser.Tweens.Timeline, config: Phaser.Types.Tweens.NumberTweenBuilderConfig, defaults: Phaser.Types.Tweens.TweenConfigDefaults): Phaser.Tweens.Tween;
 
             /**
              * Builds a Timeline of Tweens based on a configuration object.
-             * 
-             * The configuration object (`config`) can have the following properties:
-             * 
-             * `tweens` - an array of tween configuration objects to create and add into the new Timeline, as described by `TweenBuilder`. If this doesn't exist or is empty, the Timeline will start off paused and none of the other configuration settings will be read. If it's a function, it will be called and its return value will be used as the array.
-             * `targets` - an array (or function which returns one) of default targets to which to apply the Timeline. Each individual Tween configuration can override this value.
-             * `totalDuration` - if specified, each Tween in the Timeline will get an equal portion of this duration, usually in milliseconds, by default. Each individual Tween configuration can override the Tween's duration.
-             * `duration` - if `totalDuration` is not specified, the default duration, usually in milliseconds, of each Tween which will be created. Each individual Tween configuration can override the Tween's duration.
-             * `delay`, `easeParams`, `ease`, `hold`, `repeat`, `repeatDelay`, `yoyo`, `flipX`, `flipY` - the default settings for each Tween which will be created, as specified by `TweenBuilder`. Each individual Tween configuration can override any of these values.
-             * `completeDelay` - if specified, the time to wait, usually in milliseconds, before the Timeline completes.
-             * `loop` - how many times the Timeline should loop, or -1 to loop indefinitely.
-             * `loopDelay` - the time, usually in milliseconds, between each loop
-             * `paused` - if `true`, the Timeline will start paused
-             * `useFrames` - if `true`, all duration in the Timeline will be in frames instead of milliseconds
-             * `callbackScope` - the default scope (`this` value) to use for each callback registered by the Timeline Builder. If not specified, the Timeline itself will be used.
-             * `onStart` - if specified, the `onStart` callback for the Timeline, called every time it starts playing
-             * `onStartScope` - the scope (`this` value) to use for the `onStart` callback. If not specified, the `callbackScope` will be used.
-             * `onStartParams` - additional arguments to pass to the `onStart` callback. The Timeline will always be the first argument.
-             * `onUpdate` - if specified, the `onUpdate` callback for the Timeline, called every frame it's active, regardless of its Tweens
-             * `onUpdateScope` - the scope (`this` value) to use for the `onUpdate` callback. If not specified, the `callbackScope` will be used.
-             * `onUpdateParams` - additional arguments to pass to the `onUpdate` callback. The Timeline will always be the first argument.
-             * `onLoop` - if specified, the `onLoop` callback for the Timeline, called every time it loops
-             * `onLoopScope` - the scope (`this` value) to use for the `onLoop` callback. If not specified, the `callbackScope` will be used.
-             * `onLoopParams` - additional arguments to pass to the `onLoop` callback. The Timeline will always be the first argument.
-             * `onYoyo` - if specified, the `onYoyo` callback for the Timeline, called every time it yoyos
-             * `onYoyoScope` - the scope (`this` value) to use for the `onYoyo` callback. If not specified, the `callbackScope` will be used.
-             * `onYoyoParams` - additional arguments to pass to the `onYoyo` callback. The first argument will always be `null`, while the Timeline will always be the second argument.
-             * `onComplete` - if specified, the `onComplete` callback for the Timeline, called after it completes
-             * `onCompleteScope` - the scope (`this` value) to use for the `onComplete` callback. If not specified, the `callbackScope` will be used.
-             * `onCompleteParams` - additional arguments to pass to the `onComplete` callback. The Timeline will always be the first argument.
              * @param manager The Tween Manager to which the Timeline will belong.
-             * @param config The configuration object for the Timeline, as described above.
+             * @param config The configuration object for the Timeline.
              */
-            function TimelineBuilder(manager: Phaser.Tweens.TweenManager, config: object): Phaser.Tweens.Timeline;
+            function TimelineBuilder(manager: Phaser.Tweens.TweenManager, config: Phaser.Types.Tweens.TimelineBuilderConfig): Phaser.Tweens.Timeline;
 
             /**
-             * [description]
-             * @param parent [description]
-             * @param config [description]
+             * Creates a new Tween.
+             * @param parent The owner of the new Tween.
+             * @param config Configuration for the new Tween.
              * @param defaults Tween configuration defaults.
-             * `
              */
-            function TweenBuilder(parent: Phaser.Tweens.TweenManager | Phaser.Tweens.Timeline, config: object, defaults: Phaser.Types.Tweens.TweenConfigDefaults): Phaser.Tweens.Tween;
+            function TweenBuilder(parent: Phaser.Tweens.TweenManager | Phaser.Tweens.Timeline, config: Phaser.Types.Tweens.TweenBuilderConfig | object, defaults: Phaser.Types.Tweens.TweenConfigDefaults): Phaser.Tweens.Tween;
 
         }
 
@@ -78014,7 +80783,8 @@ declare namespace Phaser {
         /**
          * A Timeline combines multiple Tweens into one. Its overall behavior is otherwise similar to a single Tween.
          * 
-         * The Timeline updates all of its Tweens simultaneously. Its methods allow you to easily build a sequence of Tweens (each one starting after the previous one) or run multiple Tweens at once during given parts of the Timeline.
+         * The Timeline updates all of its Tweens simultaneously. Its methods allow you to easily build a sequence
+         * of Tweens (each one starting after the previous one) or run multiple Tweens at once during given parts of the Timeline.
          */
         class Timeline extends Phaser.Events.EventEmitter {
             /**
@@ -78039,29 +80809,29 @@ declare namespace Phaser {
             data: any[];
 
             /**
-             * data array doesn't usually change, so we can cache the length
+             * The cached size of the data array.
              */
             totalData: number;
 
             /**
-             * If true then duration, delay, etc values are all frame totals.
+             * If true then duration, delay, etc values are all frame totals, rather than ms.
              */
             useFrames: boolean;
 
             /**
-             * Scales the time applied to this Tween. A value of 1 runs in real-time. A value of 0.5 runs 50% slower, and so on.
-             * Value isn't used when calculating total duration of the tween, it's a run-time delta adjustment only.
+             * Scales the time applied to this Timeline. A value of 1 runs in real-time. A value of 0.5 runs 50% slower, and so on.
+             * Value isn't used when calculating total duration of the Timeline, it's a run-time delta adjustment only.
              */
             timeScale: number;
 
             /**
-             * Loop this tween? Can be -1 for an infinite loop, or an integer.
-             * When enabled it will play through ALL TweenDatas again (use TweenData.repeat to loop a single TD)
+             * Loop this Timeline? Can be -1 for an infinite loop, or an integer.
+             * When enabled it will play through ALL Tweens again (use Tween.repeat to loop a single tween)
              */
             loop: number;
 
             /**
-             * Time in ms/frames before the tween loops.
+             * Time in ms/frames before this Timeline loops.
              */
             loopDelay: number;
 
@@ -78076,59 +80846,62 @@ declare namespace Phaser {
             completeDelay: number;
 
             /**
-             * Countdown timer (used by loopDelay and completeDelay)
+             * Countdown timer value, as used by `loopDelay` and `completeDelay`.
              */
             countdown: number;
 
             /**
-             * The current state of the tween
+             * The current state of the Timeline.
              */
             state: integer;
 
             /**
-             * Does the Tween start off paused? (if so it needs to be started with Tween.play)
+             * Does the Timeline start off paused? (if so it needs to be started with Timeline.play)
              */
             paused: boolean;
 
             /**
-             * Elapsed time in ms/frames of this run through the Tween.
+             * Elapsed time in ms/frames of this run through of the Timeline.
              */
             elapsed: number;
 
             /**
-             * Total elapsed time in ms/frames of the entire Tween, including looping.
+             * Total elapsed time in ms/frames of the entire Timeline, including looping.
              */
             totalElapsed: number;
 
             /**
-             * Time in ms/frames for the whole Tween to play through once, excluding loop amounts and loop delays.
+             * Time in ms/frames for the whole Timeline to play through once, excluding loop amounts and loop delays.
              */
             duration: number;
 
             /**
-             * Value between 0 and 1. The amount through the Tween, excluding loops.
+             * Value between 0 and 1. The amount of progress through the Timeline, _excluding loops_.
              */
             progress: number;
 
             /**
-             * Time in ms/frames for all Tweens to complete (including looping)
+             * Time in ms/frames for all Tweens in this Timeline to complete (including looping)
              */
             totalDuration: number;
 
             /**
-             * Value between 0 and 1. The amount through the entire Tween, including looping.
+             * Value between 0 and 1. The amount through the entire Timeline, including looping.
              */
             totalProgress: number;
 
             /**
-             * Sets the value of the time scale applied to this Timeline. A value of 1 runs in real-time. A value of 0.5 runs 50% slower, and so on.
-             * Value isn't used when calculating total duration of the tween, it's a run-time delta adjustment only.
+             * Sets the value of the time scale applied to this Timeline. A value of 1 runs in real-time.
+             * A value of 0.5 runs 50% slower, and so on.
+             * 
+             * The value isn't used when calculating total duration of the tween, it's a run-time delta adjustment only.
              * @param value The time scale value to set.
              */
-            setTimeScale(value: number): Phaser.Tweens.Timeline;
+            setTimeScale(value: number): this;
 
             /**
-             * Gets the value of the time scale applied to this Timeline. A value of 1 runs in real-time. A value of 0.5 runs 50% slower, and so on.
+             * Gets the value of the time scale applied to this Timeline. A value of 1 runs in real-time.
+             * A value of 0.5 runs 50% slower, and so on.
              */
             getTimeScale(): number;
 
@@ -78138,32 +80911,33 @@ declare namespace Phaser {
             isPlaying(): boolean;
 
             /**
-             * [description]
-             * @param config [description]
+             * Creates a new Tween, based on the given Tween Config, and adds it to this Timeline.
+             * @param config The configuration object for the Tween.
              */
-            add(config: object): Phaser.Tweens.Timeline;
+            add(config: Phaser.Types.Tweens.TweenBuilderConfig | object): this;
 
             /**
-             * [description]
-             * @param tween [description]
+             * Adds an existing Tween to this Timeline.
+             * @param tween The Tween to be added to this Timeline.
              */
-            queue(tween: Phaser.Tweens.Tween): Phaser.Tweens.Timeline;
+            queue(tween: Phaser.Tweens.Tween): this;
 
             /**
-             * [description]
-             * @param tween [description]
+             * Checks whether a Tween has an offset value.
+             * @param tween The Tween to check.
              */
             hasOffset(tween: Phaser.Tweens.Tween): boolean;
 
             /**
              * Checks whether the offset value is a number or a directive that is relative to previous tweens.
-             * @param value The offset value to be evaluated
+             * @param value The offset value to be evaluated.
              */
             isOffsetAbsolute(value: number): boolean;
 
             /**
-             * Checks if the offset is a relative value rather than an absolute one. If the value is just a number, this returns false.
-             * @param value The offset value to be evaluated
+             * Checks if the offset is a relative value rather than an absolute one.
+             * If the value is just a number, this returns false.
+             * @param value The offset value to be evaluated.
              */
             isOffsetRelative(value: string): boolean;
 
@@ -78175,18 +80949,24 @@ declare namespace Phaser {
             getRelativeOffset(value: string, base: number): number;
 
             /**
-             * Calculates the total duration of the timeline.  Computes all tween's durations and returns the full duration of the timeline. The resulting number is stored in the timeline, not as a return value.
+             * Calculates the total duration of the timeline.
+             * 
+             * Computes all tween durations and returns the full duration of the timeline.
+             * 
+             * The resulting number is stored in the timeline, not as a return value.
              */
             calcDuration(): void;
 
             /**
-             * Initializes the timeline, which means all Tweens get their init() called, and the total duration will be computed. Returns a boolean indicating whether the timeline is auto-started or not.
+             * Initializes the timeline, which means all Tweens get their init() called, and the total duration will be computed.
+             * Returns a boolean indicating whether the timeline is auto-started or not.
              */
             init(): boolean;
 
             /**
-             * Resets all of the timeline's tweens back to their initial states.  The boolean parameter indicates whether tweens that are looping should reset as well, or not.
-             * @param resetFromLoop If true, resets all looping tweens to their initial values.
+             * Resets all of the timeline's tweens back to their initial states.
+             * The boolean parameter indicates whether tweens that are looping should reset as well, or not.
+             * @param resetFromLoop If `true`, resets all looping tweens to their initial values.
              */
             resetTweens(resetFromLoop: boolean): void;
 
@@ -78197,55 +80977,62 @@ declare namespace Phaser {
              * @param params The parameters to pass to the callback.
              * @param scope The context scope of the callback.
              */
-            setCallback(type: string, callback: Function, params?: any[], scope?: object): Phaser.Tweens.Timeline;
+            setCallback(type: string, callback: Function, params?: any[], scope?: object): this;
 
             /**
-             * Delegates #makeActive to the Tween manager.
+             * Passed a Tween to the Tween Manager and requests it be made active.
              * @param tween The tween object to make active.
              */
             makeActive(tween: Phaser.Tweens.Tween): Phaser.Tweens.TweenManager;
 
             /**
-             * Starts playing the timeline.
+             * Starts playing the Timeline.
              */
             play(): void;
 
             /**
-             * [description]
+             * Updates the Timeline's `state` and fires callbacks and events.
              */
             nextState(): void;
 
             /**
              * Returns 'true' if this Timeline has finished and should be removed from the Tween Manager.
              * Otherwise, returns false.
-             * @param timestamp [description]
+             * @param timestamp The current time. Either a High Resolution Timer value if it comes from Request Animation Frame, or Date.now if using SetTimeout.
              * @param delta The delta time in ms since the last frame. This is a smoothed and capped value based on the FPS rate.
              */
             update(timestamp: number, delta: number): boolean;
 
             /**
-             * Stops the Tween immediately, whatever stage of progress it is at and flags it for removal by the TweenManager.
+             * Stops the Timeline immediately, whatever stage of progress it is at and flags it for removal by the TweenManager.
              */
             stop(): void;
 
             /**
-             * Pauses the timeline, retaining its internal state.
+             * Pauses the Timeline, retaining its internal state.
+             * 
+             * Calling this on a Timeline that is already paused has no effect and fires no event.
              */
-            pause(): Phaser.Tweens.Timeline;
+            pause(): this;
 
             /**
-             * Resumes the timeline from where it was when it was paused.
+             * Resumes a paused Timeline from where it was when it was paused.
+             * 
+             * Calling this on a Timeline that isn't paused has no effect and fires no event.
              */
-            resume(): Phaser.Tweens.Timeline;
+            resume(): this;
 
             /**
-             * Checks if any of the tweens has the target as the object they are operating on. Retuns false if no tweens operate on the target object.
-             * @param target The target to check all tweens against.
+             * Checks if any of the Tweens in this Timeline as operating on the target object.
+             * 
+             * Returns `false` if no Tweens operate on the target object.
+             * @param target The target to check all Tweens against.
              */
             hasTarget(target: object): boolean;
 
             /**
-             * Stops all the Tweens in the Timeline immediately, whatever stage of progress they are at and flags them for removal by the TweenManager.
+             * Stops all the Tweens in the Timeline immediately, whatever stage of progress they are at and flags
+             * them for removal by the TweenManager.
              */
             destroy(): void;
 
@@ -78692,25 +81479,25 @@ declare namespace Phaser {
              * Create a Tween Timeline and return it, but do NOT add it to the active or pending Tween lists.
              * @param config The configuration object for the Timeline and its Tweens.
              */
-            createTimeline(config: object): Phaser.Tweens.Timeline;
+            createTimeline(config: Phaser.Types.Tweens.TimelineBuilderConfig): Phaser.Tweens.Timeline;
 
             /**
              * Create a Tween Timeline and add it to the active Tween list/
              * @param config The configuration object for the Timeline and its Tweens.
              */
-            timeline(config: object): Phaser.Tweens.Timeline;
+            timeline(config: Phaser.Types.Tweens.TimelineBuilderConfig): Phaser.Tweens.Timeline;
 
             /**
              * Create a Tween and return it, but do NOT add it to the active or pending Tween lists.
-             * @param config The configuration object for the Tween as per {@link Phaser.Tweens.Builders.TweenBuilder}.
+             * @param config The configuration object for the Tween.
              */
-            create(config: object): Phaser.Tweens.Tween;
+            create(config: Phaser.Types.Tweens.TweenBuilderConfig | object): Phaser.Tweens.Tween;
 
             /**
              * Create a Tween and add it to the active Tween list.
-             * @param config The configuration object for the Tween as per the {@link Phaser.Tweens.Builders.TweenBuilder}.
+             * @param config The configuration object for the Tween.
              */
-            add(config: object): Phaser.Tweens.Tween;
+            add(config: Phaser.Types.Tweens.TweenBuilderConfig | object): Phaser.Tweens.Tween;
 
             /**
              * Add an existing tween into the active Tween list.
@@ -78719,10 +81506,10 @@ declare namespace Phaser {
             existing(tween: Phaser.Tweens.Tween): Phaser.Tweens.TweenManager;
 
             /**
-             * Create a Tween and add it to the active Tween list.
-             * @param config The configuration object for the Number Tween as per the {@link Phaser.Tweens.Builders.NumberTweenBuilder}.
+             * Create a Number Tween and add it to the active Tween list.
+             * @param config The configuration object for the Number Tween.
              */
-            addCounter(config: object): Phaser.Tweens.Tween;
+            addCounter(config: Phaser.Types.Tweens.NumberTweenBuilderConfig): Phaser.Tweens.Tween;
 
             /**
              * Updates the Tween Manager's internal lists at the start of the frame.
@@ -79303,6 +82090,26 @@ declare namespace Phaser {
 
         }
 
+        namespace Base64 {
+            /**
+             * Converts an ArrayBuffer into a base64 string.
+             * 
+             * The resulting string can optionally be a data uri if the `mediaType` argument is provided.
+             * 
+             * See https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs for more details.
+             * @param arrayBuffer The Array Buffer to encode.
+             * @param mediaType An optional media type, i.e. `audio/ogg` or `image/jpeg`. If included the resulting string will be a data URI.
+             */
+            function ArrayBufferToBase64(arrayBuffer: ArrayBuffer, mediaType?: string): string;
+
+            /**
+             * Converts a base64 string, either with or without a data uri, into an Array Buffer.
+             * @param base64 The base64 string to be decoded. Can optionally contain a data URI header, which will be stripped out prior to decoding.
+             */
+            function Base64ToArrayBuffer(base64: string): ArrayBuffer;
+
+        }
+
         /**
          * A NOOP (No Operation) callback function.
          * 
@@ -79428,6 +82235,14 @@ declare namespace Phaser {
              * @param obj2 The second object to merge. Keys from this object which also exist in `obj1` will be copied to `obj1`.
              */
             function MergeRight(obj1: object, obj2: object): object;
+
+            /**
+             * Returns a new object that only contains the `keys` that were found on the object provided.
+             * If no `keys` are found, an empty object is returned.
+             * @param object The object to pick the provided keys from.
+             * @param keys An array of properties to retrieve from the provided object.
+             */
+            function Pick(object: object, keys: any[]): object;
 
             /**
              * Sets a value in an object, allowing for dot notation to control the depth of the property.
@@ -80424,6 +83239,13 @@ declare namespace MatterJS {
      * Factories for commonly used body configurations (such as rectangles, circles and other polygons) can be found in the module `Matter.Bodies`.
      */
     class Body {
+    }
+
+    /**
+     * The `Matter.Bodies` module contains factory methods for creating rigid body models 
+     * with commonly used body configurations (such as rectangles, circles and other polygons).
+     */
+    class Bodies {
     }
 
     /**
