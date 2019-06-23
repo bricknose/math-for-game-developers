@@ -4,6 +4,8 @@ import { Controls } from "../libraries/controls";
 import Scene = Phaser.Scene;
 
 export class Pacman extends Actor {
+    private static readonly MoveSpeed = 200;
+
     private readonly controls: Controls;
 
     constructor(scene: Scene, startPoint: Point, controls: Controls) {
@@ -14,7 +16,7 @@ export class Pacman extends Actor {
 
     preUpdate(time: number, delta: number): void {
         const moveVector = this.controls.getMoveVector();
-        this.move(moveVector);
+        this.move(moveVector.scale(Pacman.MoveSpeed * delta / 1000));
 
         if (moveVector.getX()) {
             this.flipX = moveVector.getX() < 0;
