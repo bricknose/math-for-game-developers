@@ -1,22 +1,17 @@
 ﻿export class Vector {
-    private readonly x: number;
-    private readonly y: number;
-
-    constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
+    constructor(private readonly _x: number, private readonly _y: number) {
     }
 
-    getX(): number {
-        return this.x;
+    get x(): number {
+        return this._x;
     }
 
-    getY(): number {
-        return this.y;
+    get y(): number {
+        return this._y;
     }
 
     squaredLength(): number {
-        return this.getX() * this.getX() + this.getY() * this.getY();
+        return this.x * this.x + this.y * this.y;
     }
 
     length(): number {
