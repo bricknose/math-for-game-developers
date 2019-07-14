@@ -17,6 +17,7 @@ export class Controls {
         const leftRight = (this.rightKey.isDown ? 1 : 0) + (this.leftKey.isDown ? -1 : 0);
         const upDown = (this.downKey.isDown ? 1 : 0) + (this.upKey.isDown ? -1 : 0);
 
-        return new Vector(leftRight, upDown);
+        const moveVector = new Vector(leftRight, upDown);
+        return moveVector.normalize();
     }
 }

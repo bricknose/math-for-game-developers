@@ -44,12 +44,7 @@ export class Ghost extends Actor {
     private chaseCurrentTarget(delta: number) {
         const targetVector = this.currentTarget.getPosition().subtract(this.getPosition());
 
-        const maxMoveAmount = .5;
-
-        const moveVector = new Vector(
-            Math.max(Math.min(targetVector.x, maxMoveAmount), -maxMoveAmount),
-            Math.max(Math.min(targetVector.y, maxMoveAmount), -maxMoveAmount)
-        );
+        const moveVector = targetVector.normalize();
 
         this.move(moveVector.scale(Ghost.MoveSpeed * delta / 1000));
 
