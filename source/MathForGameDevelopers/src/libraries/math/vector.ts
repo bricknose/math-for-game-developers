@@ -15,12 +15,12 @@
         return this.y;
     }
 
-    findSquaredLength(): number {
+    squaredLength(): number {
         return this.getX() * this.getX() + this.getY() * this.getY();
     }
 
-    findLength(): number {
-        return Math.sqrt(this.findSquaredLength());
+    length(): number {
+        return Math.sqrt(this.squaredLength());
     }
 
     scale(multiplier: number): Vector {

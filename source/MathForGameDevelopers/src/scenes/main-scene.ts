@@ -80,8 +80,8 @@ export class MainGameScene extends Phaser.Scene {
             else if (ghost == null)
                 continue;
             else {
-                const previousClosestGhostDistanceSquared = this.player.getPosition().subtract(closestGhost.getPosition()).findSquaredLength();
-                const thisGhostDistanceSquared = this.player.getPosition().subtract(ghost.getPosition()).findSquaredLength();
+                const previousClosestGhostDistanceSquared = this.player.getPosition().subtract(closestGhost.getPosition()).squaredLength();
+                const thisGhostDistanceSquared = this.player.getPosition().subtract(ghost.getPosition()).squaredLength();
 
                 if (thisGhostDistanceSquared < previousClosestGhostDistanceSquared) {
                     closestGhost = ghost;
