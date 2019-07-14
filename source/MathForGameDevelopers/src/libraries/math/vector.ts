@@ -1,26 +1,21 @@
 ﻿export class Vector {
-    private readonly x: number;
-    private readonly y: number;
-
-    constructor(x: number, y: number) {
-        this.x = x;
-        this.y = y;
+    constructor(private readonly _x: number, private readonly _y: number) {
     }
 
-    getX(): number {
-        return this.x;
+    get x(): number {
+        return this._x;
     }
 
-    getY(): number {
-        return this.y;
+    get y(): number {
+        return this._y;
     }
 
-    findSquaredLength(): number {
-        return this.getX() * this.getX() + this.getY() * this.getY();
+    squaredLength(): number {
+        return this.x * this.x + this.y * this.y;
     }
 
-    findLength(): number {
-        return Math.sqrt(this.findSquaredLength());
+    length(): number {
+        return Math.sqrt(this.squaredLength());
     }
 
     scale(multiplier: number): Vector {
@@ -29,5 +24,9 @@
 
     divide(divisor: number): Vector {
         return new Vector(this.x / divisor, this.y / divisor);
+    }
+
+    normalize(): Vector {
+        return this.divide(this.length());
     }
 }

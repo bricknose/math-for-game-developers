@@ -7,8 +7,8 @@ export class Actor extends Phaser.GameObjects.Sprite {
     constructor(scene: Scene, position: Point, texture: string, frame: string | number) {
         super(
             scene,
-            position.getX(),
-            position.getY(),
+            position.x,
+            position.y,
             texture,
             frame);
 
@@ -25,6 +25,6 @@ export class Actor extends Phaser.GameObjects.Sprite {
 
     private updatePosition(newPosition: Point): void {
         this.position = newPosition;
-        this.setPosition(newPosition.getX(), newPosition.getY());
+        this.setPosition(newPosition.x, newPosition.y);
     }
 }
