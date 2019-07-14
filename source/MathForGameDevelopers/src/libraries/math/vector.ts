@@ -26,4 +26,8 @@
     scale(multiplier: number): Vector {
         return new Vector(this.x * multiplier, this.y * multiplier);
     }
+
+    divide(divisor: number): Vector {
+        return new Vector(this.x / divisor, this.y / divisor);
+    }
 }
