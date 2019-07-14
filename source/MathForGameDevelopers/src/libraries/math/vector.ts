@@ -30,4 +30,8 @@
     divide(divisor: number): Vector {
         return new Vector(this.x / divisor, this.y / divisor);
     }
+
+    normalize(): Vector {
+        return this.divide(this.length());
+    }
 }
