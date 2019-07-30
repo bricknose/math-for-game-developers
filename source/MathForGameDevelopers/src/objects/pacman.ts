@@ -19,7 +19,7 @@ export class Pacman extends Actor {
         this.move(moveVector.scale(Pacman.MoveSpeed * delta / 1000));
 
         if (moveVector.x) {
-            this.flipX = moveVector.y < 0;
+            this.flipX = moveVector.x < 0;
         }
     }
 }
