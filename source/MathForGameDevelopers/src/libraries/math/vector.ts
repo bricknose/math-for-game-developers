@@ -22,6 +22,20 @@
         return new Vector(this.x * multiplier, this.y * multiplier);
     }
 
+    add(v: Vector): Vector {
+        return new Vector(
+            this.x + v.x,
+            this.y + v.y
+        );
+    }
+
+    subtract(p: Vector): Vector {
+        return new Vector(
+            this.x - p.x,
+            this.y - p.y
+        );
+    }
+
     divide(divisor: number): Vector {
         return new Vector(this.x / divisor, this.y / divisor);
     }
