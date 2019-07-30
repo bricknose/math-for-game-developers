@@ -6,7 +6,7 @@ export class Controls {
     private readonly leftKey: Phaser.Input.Keyboard.Key;
     private readonly rightKey: Phaser.Input.Keyboard.Key;
 
-    private moveVector: Vector = new Vector(1, 0);
+    private moveVector: Vector = new Vector(0, 0);
 
     constructor(keyboardInput: Phaser.Input.Keyboard.KeyboardPlugin) {
         this.upKey = keyboardInput.addKey(Phaser.Input.Keyboard.KeyCodes.W);
@@ -26,10 +26,11 @@ export class Controls {
 
     private bindKeyEvents(key: Phaser.Input.Keyboard.Key, keyVector: Vector)
     {
-        key.on('down', () => this.setMoveVector(keyVector));
+        key.on('up', () => this.addMoveVector(keyVector.scale(-1)));
+        key.on('down', () => this.addMoveVector(keyVector));
     }
 
-    private setMoveVector(moveVector: Vector){
-        this.moveVector = moveVector;
+    private addMoveVector(moveVector: Vector){
+        this.moveVector = this.moveVector.add(moveVector);
     }
 }
